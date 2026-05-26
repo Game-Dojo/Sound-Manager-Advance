@@ -43,8 +43,6 @@ public class AudioEnumGenerator : AssetPostprocessor
         sb.AppendLine("    }");
         sb.AppendLine("}");
         
-
-
         File.WriteAllText(EnumPath, sb.ToString());
         AssetDatabase.Refresh();
     }
