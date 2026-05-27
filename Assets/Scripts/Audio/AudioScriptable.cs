@@ -15,7 +15,7 @@ namespace Audio
         [MinMaxSlider(-80f, 80f)]
         public Vector2 volume = new Vector2(1,1);
         
-        [MinMaxSlider(-1200f, 1200f)]
+        [MinMaxSlider(-50f, 50f)]
         public Vector2 pitch = new Vector2(1,1);
 
         public void Initialize(AudioClip paramClip)
