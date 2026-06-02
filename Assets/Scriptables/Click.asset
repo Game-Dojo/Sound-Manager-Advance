@@ -14,5 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Audio.AudioScriptable
   clip: {fileID: 8300000, guid: 8d68f8790cbecb44bb499cdbbd878789, type: 3}
   isMusic: 0
-  volume: {x: -4.5944057, y: 5.4755244}
-  pitch: {x: 41.95806, y: 159.44057}
+  volume: {x: 1, y: 1}
+  pitch: {x: 1, y: 1}
