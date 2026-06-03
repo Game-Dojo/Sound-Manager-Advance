@@ -9,7 +9,7 @@ namespace Audio
         public AudioClip clip;
         
         [Header("Audio Type")]
-        public bool isMusic = false;
+        public AudioGroupID groupID;
         
         [Header("Variations")]
         [MinMaxSlider(-1f, 2f)]
@@ -24,6 +24,7 @@ namespace Audio
         }
         
         public AudioClip Get() => clip;
+        public AudioGroupID GetID() => groupID;
         public Vector2 GetVolumeRange() => volume;
         public Vector2 GetPitchRange() => pitch;
     }

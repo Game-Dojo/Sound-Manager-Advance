@@ -20,7 +20,8 @@ namespace Audio
 
         [Header("Mixer")]
         [SerializeField] private AudioMixer mainMixer;
-        
+
+        [SerializeField] private List<string> groupsList;
         
         [Header("Third Party")]
         [SerializeField] private bool useDoTween = false;
@@ -35,7 +36,7 @@ namespace Audio
         
         public static AudioManager Instance { get; private set; }
         
-        private Queue<AudioSource> sourcesPool = new Queue<AudioSource>();
+        private List<AudioSource> sourcesPool = new List<AudioSource>();
         
         private void Awake()
         {
@@ -63,7 +64,7 @@ namespace Audio
             AudioClip clip = scriptable.Get();
             if (clip == null) return;
 
-            var source = GetAudioSource();
+            var source = GetAudioSource(scriptable.GetID());
             if (!source)
             {
                 Debug.LogWarning("Audio Source is null");
@@ -84,13 +85,21 @@ namespace Audio
         {
             if (!_loadedScriptables.TryGetValue(id, out AudioScriptable scriptable)) return;
             
-            GameObject go = new GameObject();
+            /*GameObject go = new GameObject();
             go.transform.parent = transform;
             go.name = "OneShot SFX";
             go.transform.position = position;
 
-            AudioSource source = go.AddComponent<AudioSource>();
-            source.outputAudioMixerGroup = mainMixer.FindMatchingGroups("SFX")[0];
+            AudioSource source = go.AddComponent<AudioSource>();*/
+
+            var source = GetAudioSource(scriptable.GetID());
+            if (!source)
+            {
+                Debug.LogWarning("Audio Source is null");
+                return;
+            }
+            source.gameObject.SetActive(true);
+            
             source.spatialBlend = 1.0f;
             source.rolloffMode = AudioRolloffMode.Linear;
             
@@ -99,16 +108,28 @@ namespace Audio
             source.maxDistance = 100.0f;
         
             AudioClip clip = scriptable.Get();
+            source.clip = clip;
+            
             ChangePitchAndVolume(source, scriptable);
             source.PlayOneShot(clip);
 
-            Destroy(go, clip.length / source.pitch);
+            StartCoroutine(nameof(SourceDisable), source);
         }
+
+        private IEnumerator SourceDisable(AudioSource source)
+        {
+            yield return new WaitForSeconds(source.clip.length / source.pitch);
+            source.gameObject.SetActive(false);
+        }
+        
         public void PlayMusic(AudioID id)
         {
-            if (!_loadedScriptables.TryGetValue(id, out AudioScriptable scriptable)) return;
-            if (sourcesPool.Count <= 0) return;
-            
+            if (!_loadedScriptables.TryGetValue(id, out AudioScriptable scriptable))
+            {
+                Debug.LogWarning("Scriptable not found");
+                return;
+            }
+
             AudioClip clip = scriptable.Get();
             if (clip == null)
             {
@@ -116,12 +137,15 @@ namespace Audio
                 return;
             }
             
-            var source = GetAudioSource();
+            var source = GetAudioSource(scriptable.GetID());
             if (!source)
             {
                 Debug.LogWarning("Audio Source is null");
                 return;
             }
+            source.clip = clip;
+            source.gameObject.SetActive(true);
+            
             ChangePitchAndVolume(source, scriptable);
             source.Play();
         }
@@ -197,13 +221,20 @@ namespace Audio
             {
                 var groupName = group.ToString();
                 if (groupName != "Master")
-                    sourcesPool.Enqueue(CreatePoolAudioSource(groupName));
+                    sourcesPool.Add(CreatePoolAudioSource(groupName));
             }
         }
-
-        private AudioSource GetAudioSource()
+        
+        private AudioSource GetAudioSource(AudioGroupID id)
         {
-            return sourcesPool.Dequeue();
+            foreach (var source in sourcesPool)
+            {
+                var mixerGroup = source.outputAudioMixerGroup;
+                if (mixerGroup.name == id.ToString())
+                    return source;
+            }
+
+            return null;
         }
         
         private AudioSource CreatePoolAudioSource(string groupName)

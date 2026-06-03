@@ -684,7 +684,10 @@ MonoBehaviour:
   soundsPath: Sounds/
   musicPath: Music/
   mainMixer: {fileID: 24100000, guid: 065677081748f7d44b30091a47944a0c, type: 2}
-  sourcesPool: []
+  groupsList:
+  - Music
+  - SFX
+  - UI
   useDoTween: 0
   onMusicVolumeChanged:
     m_PersistentCalls:
