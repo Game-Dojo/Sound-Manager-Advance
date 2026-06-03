@@ -11,12 +11,8 @@ namespace Audio
     public class AudioManager : MonoBehaviour
     {
         [Header("Settings")]
-        [SerializeField] private AudioSource soundSource;
-        [SerializeField] private AudioSource musicSource;
-        [Space(8)] 
         [SerializeField] private string scriptablesPath = "Assets/Scriptables/";
-        [SerializeField] private string soundsPath = "Sounds/";
-        [SerializeField] private string musicPath = "Music/";
+        [SerializeField] private string audioPath = "Audio";
 
         [Header("Mixer")]
         [SerializeField] private AudioMixer mainMixer;
@@ -30,13 +26,19 @@ namespace Audio
         [Space(5)]
         public UnityEvent onMusicVolumeChanged;
         public UnityEvent onSoundVolumeChanged;
+
+        public enum AudioType
+        {
+            Flat,
+            Modified
+        }
         
         private readonly Dictionary<AudioID, AudioClip> _loadedClips = new Dictionary<AudioID, AudioClip>();
         private readonly Dictionary<AudioID, AudioScriptable> _loadedScriptables = new Dictionary<AudioID, AudioScriptable>();
         
         public static AudioManager Instance { get; private set; }
         
-        private List<AudioSource> sourcesPool = new List<AudioSource>();
+        private readonly List<AudioSource> _sourcesPool = new List<AudioSource>();
         
         private void Awake()
         {
@@ -75,23 +77,16 @@ namespace Audio
             source.PlayOneShot(clip);
         }
         
-        public void PlayFlatSoundAt(AudioID id, Vector3 position)
+        public void PlaySoundAt(AudioID id, Vector3 position)
         {
             if (!_loadedScriptables.TryGetValue(id, out AudioScriptable scriptable)) return;
             AudioSource.PlayClipAtPoint(scriptable.Get(), position);
         }
 
-        public void PlaySoundAt(AudioID id, Vector3 position)
+        public void PlaySoundAt(AudioID id, Vector3 position, AudioType type)
         {
             if (!_loadedScriptables.TryGetValue(id, out AudioScriptable scriptable)) return;
             
-            /*GameObject go = new GameObject();
-            go.transform.parent = transform;
-            go.name = "OneShot SFX";
-            go.transform.position = position;
-
-            AudioSource source = go.AddComponent<AudioSource>();*/
-
             var source = GetAudioSource(scriptable.GetID());
             if (!source)
             {
@@ -110,7 +105,7 @@ namespace Audio
             AudioClip clip = scriptable.Get();
             source.clip = clip;
             
-            ChangePitchAndVolume(source, scriptable);
+            if (type == AudioType.Modified) ChangePitchAndVolume(source, scriptable);
             source.PlayOneShot(clip);
 
             StartCoroutine(nameof(SourceDisable), source);
@@ -143,6 +138,7 @@ namespace Audio
                 Debug.LogWarning("Audio Source is null");
                 return;
             }
+            
             source.clip = clip;
             source.gameObject.SetActive(true);
             
@@ -172,11 +168,6 @@ namespace Audio
             
         }
         #endregion
-
-        private IEnumerator Fade()
-        {
-            yield return new WaitForSeconds(0.1f);
-        }
         
         #region Utilities
         private void ChangeVolume(string mixerGroup, float value)
@@ -191,7 +182,7 @@ namespace Audio
         }
         private void SaveClips()
         {
-            AudioClip[] allClips = Resources.LoadAll<AudioClip>("Audio");
+            AudioClip[] allClips = Resources.LoadAll<AudioClip>(audioPath);
 
             var enumIndex = 1;
             foreach (var clip in allClips)
@@ -204,14 +195,13 @@ namespace Audio
         private void EditScriptable( AudioClip clip, AudioID audioID )
         {
             string path = $"{scriptablesPath}{clip.name}.asset";
-            AudioScriptable mySO = AssetDatabase.LoadAssetAtPath<AudioScriptable>(path);
-            if (mySO)
-            {
-                _loadedScriptables.TryAdd(audioID, mySO);
-                mySO.Initialize(clip);
-                EditorUtility.SetDirty(mySO);
-                AssetDatabase.SaveAssets();
-            }
+            AudioScriptable mySo = AssetDatabase.LoadAssetAtPath<AudioScriptable>(path);
+            if (!mySo) return;
+            
+            _loadedScriptables.TryAdd(audioID, mySo);
+            mySo.Initialize(clip);
+            EditorUtility.SetDirty(mySo);
+            AssetDatabase.SaveAssets();
         }
         private void AssignMixerGroups()
         {
@@ -221,13 +211,12 @@ namespace Audio
             {
                 var groupName = group.ToString();
                 if (groupName != "Master")
-                    sourcesPool.Add(CreatePoolAudioSource(groupName));
+                    _sourcesPool.Add(CreatePoolAudioSource(groupName));
             }
         }
-        
         private AudioSource GetAudioSource(AudioGroupID id)
         {
-            foreach (var source in sourcesPool)
+            foreach (var source in _sourcesPool)
             {
                 var mixerGroup = source.outputAudioMixerGroup;
                 if (mixerGroup.name == id.ToString())
@@ -236,7 +225,6 @@ namespace Audio
 
             return null;
         }
-        
         private AudioSource CreatePoolAudioSource(string groupName)
         {
             GameObject go = new GameObject();

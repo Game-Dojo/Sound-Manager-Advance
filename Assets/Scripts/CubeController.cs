@@ -1,3 +1,4 @@
+using System.Collections;
 using Audio;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -13,9 +14,10 @@ public class CubeController : MonoBehaviour
         _rb = GetComponent<Rigidbody>();
     }
 
-    private void Start()
+    private IEnumerator Start()
     {
         _audioManager = AudioManager.Instance;
+        yield return new WaitForEndOfFrame();
         _audioManager.PlayMusic(AudioID.PuzzleMenu);
     }
 
@@ -27,16 +29,14 @@ public class CubeController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (_shouldJump)
-        {
-            _rb.AddForce(Vector3.up * 5f, ForceMode.Impulse);
-            _shouldJump = false;
-        }
+        if (!_shouldJump) return;
+        _rb.AddForce(Vector3.up * 5f, ForceMode.Impulse);
+        _shouldJump = false;
     }
 
     private void Jump()
     {
         _shouldJump = true;
-        _audioManager.PlaySoundAt(AudioID.Switch, transform.position + Vector3.forward * 5);
+        _audioManager.PlaySoundAt(AudioID.Switch, transform.position + Vector3.forward * 5, AudioManager.AudioType.Modified);
     }
 }
