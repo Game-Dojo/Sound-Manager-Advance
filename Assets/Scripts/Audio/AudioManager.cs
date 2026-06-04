@@ -24,8 +24,8 @@ namespace Audio
         
         [Header("Events")]
         [Space(5)]
-        public UnityEvent onMusicVolumeChanged;
-        public UnityEvent onSoundVolumeChanged;
+        [SerializeField] private UnityEvent onMusicVolumeChanged;
+        [SerializeField] private UnityEvent onSoundVolumeChanged;
 
         public enum AudioType
         {
@@ -35,11 +35,11 @@ namespace Audio
         
         private readonly Dictionary<AudioID, AudioClip> _loadedClips = new Dictionary<AudioID, AudioClip>();
         private readonly Dictionary<AudioID, AudioScriptable> _loadedScriptables = new Dictionary<AudioID, AudioScriptable>();
-        
-        public static AudioManager Instance { get; private set; }
-        
         private readonly List<AudioSource> _sourcesPool = new List<AudioSource>();
         
+        public static AudioManager Instance { get; private set; }
+
+        private Coroutine _disableSourceRoutine;
         private void Awake()
         {
             if (Instance != null && Instance != this)
@@ -76,6 +76,28 @@ namespace Audio
             ChangePitchAndVolume(source, scriptable);
             source.PlayOneShot(clip);
         }
+
+        public void PlayUISound(AudioID id, AudioType type = AudioType.Flat)
+        {
+            if (!_loadedScriptables.TryGetValue(id, out AudioScriptable scriptable)) return;
+            var source = GetAudioSource(scriptable.GetID());
+            if (!source)
+            {
+                Debug.LogWarning("UI Audio Source is null");
+                return;
+            }
+            
+            source.gameObject.SetActive(true);
+            source.spatialBlend = 0f;
+            
+            AudioClip clip = scriptable.Get();
+            source.clip = clip;
+            
+            if (type == AudioType.Modified) ChangePitchAndVolume(source, scriptable);
+            source.PlayOneShot(clip);
+            
+            _disableSourceRoutine = StartCoroutine(nameof(SourceDisable), source);
+        }
         
         public void PlaySoundAt(AudioID id, Vector3 position)
         {
@@ -97,10 +119,15 @@ namespace Audio
             
             source.spatialBlend = 1.0f;
             source.rolloffMode = AudioRolloffMode.Linear;
-            
-            // TODO: Add to scriptable
             source.minDistance = 2.0f;
-            source.maxDistance = 100.0f;
+            source.maxDistance = 50.0f;
+
+            if (scriptable.use3DSound)
+            {
+                source.rolloffMode = scriptable.rolloffMode;
+                source.minDistance = scriptable.minMaxDistance.x;
+                source.maxDistance = scriptable.minMaxDistance.y;
+            }
         
             AudioClip clip = scriptable.Get();
             source.clip = clip;
@@ -156,16 +183,6 @@ namespace Audio
         {
             ChangeVolume("SFXVolume", normalizedValue);
             onSoundVolumeChanged?.Invoke();
-        }
-
-        public void FadeOutMusic()
-        {
-            
-        }
-
-        public void FadeInMusic()
-        {
-            
         }
         #endregion
         

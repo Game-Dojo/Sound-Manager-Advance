@@ -16,3 +16,6 @@ MonoBehaviour:
   groupID: 3
   volume: {x: 1, y: 1}
   pitch: {x: 1, y: 1}
+  use3DSound: 0
+  rolloffMode: 1
+  minMaxDistance: {x: 2, y: 50}

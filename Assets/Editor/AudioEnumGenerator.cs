@@ -16,7 +16,7 @@ public class AudioEnumGenerator : AssetPostprocessor
         GenerateEnum();
     }*/
 
-    [MenuItem("Tools/Generate Audio Enums")]
+    [MenuItem("Tools/2. Generate Audio Enums")]
     public static void GenerateEnum()
     {
         if (!Directory.Exists(AudioFolder))
@@ -53,7 +53,7 @@ public class AudioEnumGenerator : AssetPostprocessor
         AssetDatabase.Refresh();
     }
 
-    [MenuItem("Tools/Generate Group Enums")]
+    [MenuItem("Tools/1. Generate Group Enums")]
     public static void GenerateGroupsEnum()
     {
         if (!Directory.Exists(AudioFolder)) return;

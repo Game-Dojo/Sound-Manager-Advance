@@ -15,4 +15,7 @@ MonoBehaviour:
   clip: {fileID: 8300000, guid: d9ffa33e1ae124047896e638dd66e1b1, type: 3}
   groupID: 3
   volume: {x: 1, y: 1}
-  pitch: {x: 1, y: 1}
+  pitch: {x: 0.9, y: 1.1}
+  use3DSound: 0
+  rolloffMode: 1
+  minMaxDistance: {x: 2, y: 50}
