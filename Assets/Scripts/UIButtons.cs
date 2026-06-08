@@ -15,4 +15,14 @@ public class UIButtons : MonoBehaviour
     {
         AudioManager.Instance.PlayUISound(AudioID.MouseRelease, AudioManager.AudioType.Modified);
     }
+
+    public void FadeMusic()
+    {
+        AudioManager.Instance.FadeMusic(2.0f);
+    }
+    
+    public void FadeMusicIn()
+    {
+        AudioManager.Instance.FadeMusic(2.0f, AudioManager.FadeType.FadeIn);
+    }
 }

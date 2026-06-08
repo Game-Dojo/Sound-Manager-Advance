@@ -16,30 +16,36 @@ namespace Audio
 
         [Header("Mixer")]
         [SerializeField] private AudioMixer mainMixer;
-
-        [SerializeField] private List<string> groupsList;
-        
-        [Header("Third Party")]
-        [SerializeField] private bool useDoTween = false;
         
         [Header("Events")]
         [Space(5)]
         [SerializeField] private UnityEvent onMusicVolumeChanged;
         [SerializeField] private UnityEvent onSoundVolumeChanged;
 
+        [Header("Fade Settings")] 
+        [SerializeField] private AnimationCurve fadeCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+        
+        #region Private members
+        private readonly Dictionary<AudioID, AudioClip> _loadedClips = new Dictionary<AudioID, AudioClip>();
+        private readonly Dictionary<AudioID, AudioScriptable> _loadedScriptables = new Dictionary<AudioID, AudioScriptable>();
+        private readonly List<AudioSource> _sourcesPool = new List<AudioSource>();
+        
+        private Coroutine _disableSourceRoutine;
+        private Coroutine _activeFadeRoutine;
+        #endregion
         public enum AudioType
         {
             Flat,
             Modified
         }
-        
-        private readonly Dictionary<AudioID, AudioClip> _loadedClips = new Dictionary<AudioID, AudioClip>();
-        private readonly Dictionary<AudioID, AudioScriptable> _loadedScriptables = new Dictionary<AudioID, AudioScriptable>();
-        private readonly List<AudioSource> _sourcesPool = new List<AudioSource>();
-        
-        public static AudioManager Instance { get; private set; }
 
-        private Coroutine _disableSourceRoutine;
+        public enum FadeType
+        {
+            FadeIn,
+            FadeOut
+        }
+        public static AudioManager Instance { get; private set; }
+        
         private void Awake()
         {
             if (Instance != null && Instance != this)
@@ -59,7 +65,7 @@ namespace Audio
             if (mainMixer) AssignMixerGroups();
         }
 
-        #region Public Methods
+        #region Play Methods
         public void PlaySound(AudioID id)
         {
             if (!_loadedScriptables.TryGetValue(id, out AudioScriptable scriptable)) return;
@@ -76,35 +82,11 @@ namespace Audio
             ChangePitchAndVolume(source, scriptable);
             source.PlayOneShot(clip);
         }
-
-        public void PlayUISound(AudioID id, AudioType type = AudioType.Flat)
-        {
-            if (!_loadedScriptables.TryGetValue(id, out AudioScriptable scriptable)) return;
-            var source = GetAudioSource(scriptable.GetID());
-            if (!source)
-            {
-                Debug.LogWarning("UI Audio Source is null");
-                return;
-            }
-            
-            source.gameObject.SetActive(true);
-            source.spatialBlend = 0f;
-            
-            AudioClip clip = scriptable.Get();
-            source.clip = clip;
-            
-            if (type == AudioType.Modified) ChangePitchAndVolume(source, scriptable);
-            source.PlayOneShot(clip);
-            
-            _disableSourceRoutine = StartCoroutine(nameof(SourceDisable), source);
-        }
-        
         public void PlaySoundAt(AudioID id, Vector3 position)
         {
             if (!_loadedScriptables.TryGetValue(id, out AudioScriptable scriptable)) return;
             AudioSource.PlayClipAtPoint(scriptable.Get(), position);
         }
-
         public void PlaySoundAt(AudioID id, Vector3 position, AudioType type)
         {
             if (!_loadedScriptables.TryGetValue(id, out AudioScriptable scriptable)) return;
@@ -135,16 +117,32 @@ namespace Audio
             if (type == AudioType.Modified) ChangePitchAndVolume(source, scriptable);
             source.PlayOneShot(clip);
 
-            StartCoroutine(nameof(SourceDisable), source);
+            if (_disableSourceRoutine != null) StopCoroutine(_disableSourceRoutine);
+            _disableSourceRoutine = StartCoroutine(nameof(SourceDisable), source);
         }
-
-        private IEnumerator SourceDisable(AudioSource source)
+        public void PlayUISound(AudioID id, AudioType type = AudioType.Flat)
         {
-            yield return new WaitForSeconds(source.clip.length / source.pitch);
-            source.gameObject.SetActive(false);
+            if (!_loadedScriptables.TryGetValue(id, out AudioScriptable scriptable)) return;
+            var source = GetAudioSource(scriptable.GetID());
+            if (!source)
+            {
+                Debug.LogWarning("UI Audio Source is null");
+                return;
+            }
+            
+            source.gameObject.SetActive(true);
+            source.spatialBlend = 0f;
+            
+            AudioClip clip = scriptable.Get();
+            source.clip = clip;
+            
+            if (type == AudioType.Modified) ChangePitchAndVolume(source, scriptable);
+            source.PlayOneShot(clip);
+            
+            if (_disableSourceRoutine != null) StopCoroutine(_disableSourceRoutine);
+            _disableSourceRoutine = StartCoroutine(nameof(SourceDisable), source);
         }
-        
-        public void PlayMusic(AudioID id)
+        public void PlayMusic(AudioID id, bool loopMode = true)
         {
             if (!_loadedScriptables.TryGetValue(id, out AudioScriptable scriptable))
             {
@@ -168,11 +166,14 @@ namespace Audio
             
             source.clip = clip;
             source.gameObject.SetActive(true);
+            source.loop = loopMode;
             
             ChangePitchAndVolume(source, scriptable);
             source.Play();
         }
+        #endregion
         
+        #region Modify Methods
         public void ChangeMusicVolume(float normalizedValue)
         {
             ChangeVolume("MusicVolume", normalizedValue);
@@ -183,6 +184,11 @@ namespace Audio
         {
             ChangeVolume("SFXVolume", normalizedValue);
             onSoundVolumeChanged?.Invoke();
+        }
+        public void FadeMusic(float duration = 1.0f, FadeType type = FadeType.FadeOut)
+        {
+            if (_activeFadeRoutine != null) StopCoroutine(_activeFadeRoutine);
+            _activeFadeRoutine = StartCoroutine(FadeRoutine((type == FadeType.FadeOut) ? 0 : 1.0f, duration));
         }
         #endregion
         
@@ -197,6 +203,64 @@ namespace Audio
             source.volume = Random.Range(audioScript.volume.x, audioScript.volume.y);
             source.pitch = Random.Range(audioScript.pitch.x, audioScript.pitch.y);
         }
+        private IEnumerator SourceDisable(AudioSource source)
+        {
+            yield return new WaitForSeconds(source.clip.length / source.pitch);
+            source.gameObject.SetActive(false);
+        }
+        private IEnumerator FadeRoutine(float targetLinear, float duration)
+        {
+            float elapsed = 0f;
+
+            mainMixer.GetFloat("MusicVolume", out float currentDb);
+            float startLinear = Mathf.Pow(10, currentDb / 20);
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+            
+                float percentage = Mathf.Clamp01(elapsed / duration);
+                float curveWeight = fadeCurve.Evaluate(percentage);
+                float currentVolume = Mathf.Lerp(startLinear, targetLinear, curveWeight);
+                
+                ChangeVolume("MusicVolume", currentVolume);
+
+                yield return null;
+            }
+
+            ChangeVolume("MusicVolume", targetLinear);
+        }
+        #endregion
+        
+        #region Sources
+        private AudioSource GetAudioSource(AudioGroupID id)
+        {
+            foreach (var source in _sourcesPool)
+            {
+                var mixerGroup = source.outputAudioMixerGroup;
+                if (mixerGroup.name == id.ToString())
+                    return source;
+            }
+
+            return null;
+        }
+        private AudioSource CreatePoolAudioSource(string groupName)
+        {
+            GameObject go = new GameObject();
+            go.transform.parent = transform;
+            go.name = groupName + "Source";
+            go.transform.position = Vector3.zero;
+
+            AudioSource source = go.AddComponent<AudioSource>();
+            source.outputAudioMixerGroup = mainMixer.FindMatchingGroups(groupName)[0];
+            source.playOnAwake = false;
+
+            go.SetActive(false);
+            return source;
+        }
+        #endregion
+        
+        #region Loading + Handling
         private void SaveClips()
         {
             AudioClip[] allClips = Resources.LoadAll<AudioClip>(audioPath);
@@ -230,31 +294,6 @@ namespace Audio
                 if (groupName != "Master")
                     _sourcesPool.Add(CreatePoolAudioSource(groupName));
             }
-        }
-        private AudioSource GetAudioSource(AudioGroupID id)
-        {
-            foreach (var source in _sourcesPool)
-            {
-                var mixerGroup = source.outputAudioMixerGroup;
-                if (mixerGroup.name == id.ToString())
-                    return source;
-            }
-
-            return null;
-        }
-        private AudioSource CreatePoolAudioSource(string groupName)
-        {
-            GameObject go = new GameObject();
-            go.transform.parent = transform;
-            go.name = groupName + "Source";
-            go.transform.position = Vector3.zero;
-
-            AudioSource source = go.AddComponent<AudioSource>();
-            source.outputAudioMixerGroup = mainMixer.FindMatchingGroups(groupName)[0];
-            source.playOnAwake = false;
-
-            go.SetActive(false);
-            return source;
         }
         #endregion
     }
