@@ -1073,7 +1073,7 @@ GameObject:
   - component: {fileID: 653261942}
   - component: {fileID: 653261946}
   m_Layer: 0
-  m_Name: Cube
+  m_Name: Player
   m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2427,6 +2427,6 @@ SceneRoots:
   - {fileID: 421213624}
   - {fileID: 653261945}
   - {fileID: 730264823}
-  - {fileID: 789081403}
   - {fileID: 146852536}
+  - {fileID: 789081403}
   - {fileID: 1550565359}
