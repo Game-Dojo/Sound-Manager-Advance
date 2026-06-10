@@ -10,28 +10,28 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: dfabd1bbbc66ea6479515210bf2a99ae, type: 3}
-  m_Name: MouseClick
+  m_Name: Switch_CON_ESPACIOS
   m_EditorClassIdentifier: Assembly-CSharp::Audio.AudioScriptable
-  clip: {fileID: 8300000, guid: d9ffa33e1ae124047896e638dd66e1b1, type: 3}
+  clip: {fileID: 8300000, guid: 95d871a85fd920443bed2878bfe94690, type: 3}
   groupID: 2
   volume: {x: 1, y: 1}
   pitch: {x: 1, y: 1}
-  use3DSound: 0
+  use3DSound: 1
   useCustomCurve: 0
-  rolloffMode: 1
-  minMaxDistance: {x: 2, y: 50}
+  rolloffMode: 0
+  minMaxDistance: {x: 2, y: 20}
   distanceCurve:
     serializedVersion: 2
     m_Curve:
     - serializedVersion: 3
       time: 0
       value: 1
-      inSlope: 0
-      outSlope: 0
+      inSlope: -3.9268293
+      outSlope: -3.9268293
       tangentMode: 0
       weightedMode: 0
       inWeight: 0
-      outWeight: 0
+      outWeight: 0.050931673
     - serializedVersion: 3
       time: 1
       value: 0

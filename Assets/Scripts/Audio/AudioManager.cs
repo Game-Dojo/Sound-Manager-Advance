@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
@@ -11,39 +12,39 @@ namespace Audio
     public class AudioManager : MonoBehaviour
     {
         [Header("Settings")]
-        [SerializeField] private string scriptablesPath = "Assets/Scriptables/";
-        [SerializeField] private string audioPath = "Audio";
+        [SerializeField] private AudioSettings audioSettings;
 
         [Header("Mixer")]
         [SerializeField] private AudioMixer mainMixer;
+        
+        [Header("Fade Settings")]
+        [SerializeField] private AnimationCurve fadeCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
         
         [Header("Events")]
         [Space(5)]
         [SerializeField] private UnityEvent onMusicVolumeChanged;
         [SerializeField] private UnityEvent onSoundVolumeChanged;
-
-        [Header("Fade Settings")] 
-        [SerializeField] private AnimationCurve fadeCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
         
         #region Private members
         private readonly Dictionary<AudioID, AudioClip> _loadedClips = new Dictionary<AudioID, AudioClip>();
         private readonly Dictionary<AudioID, AudioScriptable> _loadedScriptables = new Dictionary<AudioID, AudioScriptable>();
-        private readonly List<AudioSource> _sourcesPool = new List<AudioSource>();
+        private  List<AudioSource> _sourcesPool = new List<AudioSource>();
         
         private Coroutine _disableSourceRoutine;
         private Coroutine _activeFadeRoutine;
         #endregion
-        public enum AudioType
+        
+        public enum AudioMode
         {
             Flat,
             Modified
         }
-
         public enum FadeType
         {
             FadeIn,
             FadeOut
         }
+        
         public static AudioManager Instance { get; private set; }
         
         private void Awake()
@@ -87,7 +88,7 @@ namespace Audio
             if (!_loadedScriptables.TryGetValue(id, out AudioScriptable scriptable)) return;
             AudioSource.PlayClipAtPoint(scriptable.Get(), position);
         }
-        public void PlaySoundAt(AudioID id, Vector3 position, AudioType type)
+        public void PlaySoundAt(AudioID id, Vector3 position, AudioMode mode)
         {
             if (!_loadedScriptables.TryGetValue(id, out AudioScriptable scriptable)) return;
             
@@ -114,19 +115,19 @@ namespace Audio
             AudioClip clip = scriptable.Get();
             source.clip = clip;
             
-            if (type == AudioType.Modified) ChangePitchAndVolume(source, scriptable);
+            if (mode == AudioMode.Modified) ChangePitchAndVolume(source, scriptable);
             source.PlayOneShot(clip);
 
             if (_disableSourceRoutine != null) StopCoroutine(_disableSourceRoutine);
             _disableSourceRoutine = StartCoroutine(nameof(SourceDisable), source);
         }
-        public void PlayUISound(AudioID id, AudioType type = AudioType.Flat)
+        public void PlayUISound(AudioID id, AudioMode mode = AudioMode.Flat)
         {
             if (!_loadedScriptables.TryGetValue(id, out AudioScriptable scriptable)) return;
             var source = GetAudioSource(scriptable.GetID());
             if (!source)
             {
-                Debug.LogWarning("UI Audio Source is null");
+                Debug.LogWarning("UI Source is null");
                 return;
             }
             
@@ -134,9 +135,14 @@ namespace Audio
             source.spatialBlend = 0f;
             
             AudioClip clip = scriptable.Get();
+            if (clip == null)
+            {
+                Debug.LogWarning("AudioClip is null");
+                return;
+            }
             source.clip = clip;
             
-            if (type == AudioType.Modified) ChangePitchAndVolume(source, scriptable);
+            if (mode == AudioMode.Modified) ChangePitchAndVolume(source, scriptable);
             source.PlayOneShot(clip);
             
             if (_disableSourceRoutine != null) StopCoroutine(_disableSourceRoutine);
@@ -171,6 +177,51 @@ namespace Audio
             ChangePitchAndVolume(source, scriptable);
             source.Play();
         }
+        public void PlayFollow(AudioID id, GameObject objectToFollow, bool loopMode = true)
+        {
+            AudioSource source = GetFreeSource();
+            if (source == null) return;
+            
+            if (!_loadedScriptables.TryGetValue(id, out AudioScriptable scriptable))
+            {
+                Debug.LogWarning("Scriptable not found");
+                return;
+            }
+            
+            AudioClip clip = scriptable.Get();
+            if (clip == null)
+            {
+                Debug.LogWarning($"AudioClip ({id}) not found");
+                return;
+            }
+            
+            source.clip = clip;
+            source.loop = loopMode;
+            
+            source.spatialBlend = 1.0f;
+            source.rolloffMode = AudioRolloffMode.Linear;
+            source.dopplerLevel = 0;
+            source.minDistance = 2.0f;
+            source.maxDistance = 50.0f;
+            
+            if (scriptable.groupID != AudioGroupID.None)
+                source.outputAudioMixerGroup = mainMixer.FindMatchingGroups(scriptable.groupID.ToString())[0];
+            
+            if (scriptable.use3DSound)
+            {
+                source.rolloffMode = scriptable.rolloffMode;
+                source.minDistance = scriptable.minMaxDistance.x;
+                source.maxDistance = scriptable.minMaxDistance.y;
+                
+                if (scriptable.useCustomCurve)
+                    source.SetCustomCurve(AudioSourceCurveType.CustomRolloff, scriptable.distanceCurve);
+            }
+            
+            source.gameObject.SetActive(true);
+            source.transform.SetParent(objectToFollow.transform);
+            
+            source.Play();
+        }
         #endregion
         
         #region Modify Methods
@@ -195,7 +246,7 @@ namespace Audio
         #region Utilities
         private void ChangeVolume(string mixerGroup, float value)
         {
-            float db = Mathf.Log10(Mathf.Clamp(value, 0.0001f, 1f)) * 20;
+            float db = Mathf.Log10(Mathf.Clamp(value, 0.0001f, 10f)) * 20;
             mainMixer.SetFloat(mixerGroup, db);
         }
         private void ChangePitchAndVolume(AudioSource source, AudioScriptable audioScript)
@@ -244,7 +295,18 @@ namespace Audio
 
             return null;
         }
-        private AudioSource CreatePoolAudioSource(string groupName)
+
+        private AudioSource GetFreeSource()
+        {
+            foreach (var source in _sourcesPool)
+            {
+                var mixerGroup = source.outputAudioMixerGroup;
+                if (mixerGroup == null) return source;
+            }
+
+            return null;
+        }
+        private AudioSource CreatePoolAudioSource(string groupName, bool useGroup = true)
         {
             GameObject go = new GameObject();
             go.transform.parent = transform;
@@ -252,7 +314,8 @@ namespace Audio
             go.transform.position = Vector3.zero;
 
             AudioSource source = go.AddComponent<AudioSource>();
-            source.outputAudioMixerGroup = mainMixer.FindMatchingGroups(groupName)[0];
+            if (useGroup)
+                source.outputAudioMixerGroup = mainMixer.FindMatchingGroups(groupName)[0];
             source.playOnAwake = false;
 
             go.SetActive(false);
@@ -263,22 +326,36 @@ namespace Audio
         #region Loading + Handling
         private void SaveClips()
         {
-            AudioClip[] allClips = Resources.LoadAll<AudioClip>(audioPath);
+            if (!audioSettings)
+            {
+                Debug.LogWarning("Audio settings not set");
+                return;
+            }
+            
+            AudioClip[] allClips = Resources.LoadAll<AudioClip>(audioSettings.audioPath);
 
-            var enumIndex = 1;
             foreach (var clip in allClips)
             {
-                _loadedClips.TryAdd((AudioID) enumIndex, clip);
-                EditScriptable(clip, (AudioID) enumIndex);
-                enumIndex++;
+                var clipName = clip.name.Replace(" ", "_");
+                if (!Enum.TryParse(clipName, out AudioID id)) continue;
+                
+                _loadedClips.TryAdd(id, clip);
+                EditScriptable(clip, id);
             }
         }
         private void EditScriptable( AudioClip clip, AudioID audioID )
         {
-            string path = $"{scriptablesPath}{clip.name}.asset";
+            if (!audioSettings)
+            {
+                Debug.LogWarning("Audio settings not set");
+                return;
+            }
+            
+            var clipName = clip.name.Replace(" ", "_");
+            string path = $"{audioSettings.scriptablesPath}{clipName}.asset";
             AudioScriptable mySo = AssetDatabase.LoadAssetAtPath<AudioScriptable>(path);
             if (!mySo) return;
-            
+
             _loadedScriptables.TryAdd(audioID, mySo);
             mySo.Initialize(clip);
             EditorUtility.SetDirty(mySo);
@@ -293,6 +370,11 @@ namespace Audio
                 var groupName = group.ToString();
                 if (groupName != "Master")
                     _sourcesPool.Add(CreatePoolAudioSource(groupName));
+            }
+
+            for (var i = 0; i < 10; i++)
+            {
+                _sourcesPool.Add(CreatePoolAudioSource($"Audio_{i+1}", false));
             }
         }
         #endregion

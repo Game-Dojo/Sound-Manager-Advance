@@ -37,6 +37,6 @@ public class CubeController : MonoBehaviour
     private void Jump()
     {
         _shouldJump = true;
-        _audioManager.PlaySoundAt(AudioID.Switch, transform.position + Vector3.forward * 5, AudioManager.AudioType.Modified);
+        _audioManager.PlaySoundAt(AudioID.Switch, transform.position + Vector3.forward * 5, AudioManager.AudioMode.Modified);
     }
 }

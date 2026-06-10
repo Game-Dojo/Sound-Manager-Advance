@@ -21,10 +21,14 @@ namespace Audio
 
         [Header("3D Sound")]
         public bool use3DSound = false;
-        [ShowIf("use3DSound")]
+
+        public bool useCustomCurve = false;
+        [ShowIf("use3DSound")][DisableIf("useCustomCurve")]
         public AudioRolloffMode rolloffMode = AudioRolloffMode.Linear;
         [ShowIf("use3DSound")][MinMaxSlider(1f, 50f)]
         public Vector2 minMaxDistance = new Vector2(2,50);
+        [ShowIf("useCustomCurve")]
+        public AnimationCurve distanceCurve = new AnimationCurve(new Keyframe[] { new Keyframe(0, 1), new Keyframe(1, 0) });
         
         public void Initialize(AudioClip paramClip)
         {

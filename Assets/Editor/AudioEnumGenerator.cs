@@ -1,88 +1,124 @@
+using System;
+using Audio;
+using System.IO;
+using System.Text;
 using UnityEditor;
 using UnityEngine;
-using System.Text;
-using System.IO;
-using Audio;
 using UnityEngine.Audio;
+using AudioSettings = Audio.AudioSettings;
 
-public class AudioEnumGenerator : AssetPostprocessor
+namespace Editor
 {
-    private const string EnumPath = "Assets/Scripts/Audio/AudioID.cs";
-    private const string GroupEnumPath = "Assets/Scripts/Audio/AudioGroupID.cs";
-    private const string AudioFolder = "Assets/Resources/Audio/";
-
-    /*private static void OnPostprocessAllAssets(string[] imported, string[] deleted, string[] moved, string[] movedFrom)
+    public class AudioEnumGenerator : AssetPostprocessor
     {
-        GenerateEnum();
-    }*/
+        private const string BasePath = "Assets/";
+        
+        private const string EnumPath = "Assets/Scripts/Audio/AudioID.cs";
+        private const string GroupEnumPath = "Assets/Scripts/Audio/AudioGroupID.cs";
+        private const string AudioFolder = "Assets/Resources/Audio/";
 
-    [MenuItem("Tools/2. Generate Audio Enums")]
-    public static void GenerateEnum()
-    {
-        if (!Directory.Exists(AudioFolder))
+        [MenuItem("Tools/2. Generate Audio Enums")]
+        public static void GenerateEnum()
         {
-            Debug.LogWarning("Folder does not exist: " + AudioFolder);
-            return;
-        }
+            var audioPath = GetAudioResourcePath();
+            var scriptablePath = GetScriptablePath();
 
-        string[] guids = AssetDatabase.FindAssets("t:AudioClip", new[] { AudioFolder });
-        StringBuilder sb = new StringBuilder();
+            if (!Directory.Exists(audioPath))
+            {
+                Debug.LogWarning("Folder does not exist: " + audioPath);
+                return;
+            }
 
-        sb.AppendLine("// AUTO-GENERATED CODE - DO NOT MODIFY");
-        sb.AppendLine("namespace Audio");
-        sb.AppendLine("{");
-        sb.AppendLine("    public enum AudioID");
-        sb.AppendLine("    {");
-        sb.AppendLine("        None = 0,");
+            string[] guids = AssetDatabase.FindAssets("t:AudioClip", new[] { audioPath });
+            StringBuilder sb = new StringBuilder();
 
-        foreach (string guid in guids)
-        {
-            string path = AssetDatabase.GUIDToAssetPath(guid);
-            string name = Path.GetFileNameWithoutExtension(path).Replace(" ", "_");
-            sb.AppendLine($"        {name},");
+            sb.AppendLine("// AUTO-GENERATED CODE - DO NOT MODIFY");
+            sb.AppendLine("namespace Audio");
+            sb.AppendLine("{");
+            sb.AppendLine("    public enum AudioID");
+            sb.AppendLine("    {");
+            sb.AppendLine("        None = 0,");
+
+            foreach (string guid in guids)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                string name = Path.GetFileNameWithoutExtension(path).Replace(" ", "_");
+                sb.AppendLine($"        {name},");
             
-            AudioScriptable newAsset = ScriptableObject.CreateInstance<AudioScriptable>();
-            UnityEditor.AssetDatabase.CreateAsset(newAsset, $"Assets/Scriptables/{name}.asset");
-            UnityEditor.AssetDatabase.SaveAssets();
+                AudioScriptable newAsset = ScriptableObject.CreateInstance<AudioScriptable>();
+                UnityEditor.AssetDatabase.CreateAsset(newAsset, $"{scriptablePath}{name}.asset");
+                UnityEditor.AssetDatabase.SaveAssets();
+            }
+
+            sb.AppendLine("    }");
+            sb.AppendLine("}");
+        
+            File.WriteAllText(EnumPath, sb.ToString());
+            AssetDatabase.Refresh();
         }
 
-        sb.AppendLine("    }");
-        sb.AppendLine("}");
-        
-        File.WriteAllText(EnumPath, sb.ToString());
-        AssetDatabase.Refresh();
-    }
-
-    [MenuItem("Tools/1. Generate Group Enums")]
-    public static void GenerateGroupsEnum()
-    {
-        if (!Directory.Exists(AudioFolder)) return;
-
-        var mixer = Resources.Load<AudioMixer>("MainMixer");
-        if (mixer == null) return;
-
-        var allGroups = mixer.FindMatchingGroups(""); //new string[] {"Music", "SFX", "UI"};
-        
-        StringBuilder sb = new StringBuilder();
-
-        sb.AppendLine("// AUTO-GENERATED CODE - DO NOT MODIFY");
-        sb.AppendLine("namespace Audio");
-        sb.AppendLine("{");
-        sb.AppendLine("    public enum AudioGroupID");
-        sb.AppendLine("    {");
-        sb.AppendLine("        None = 0,");
-
-        foreach (AudioMixerGroup group in allGroups)
+        [MenuItem("Tools/1. Generate Group Enums")]
+        public static void GenerateGroupsEnum()
         {
-            var groupName = group.ToString();
-            if (groupName != "Master")
-                sb.AppendLine($"        {groupName},");
+            if (!Directory.Exists(AudioFolder)) return;
+
+            var mixer = Resources.Load<AudioMixer>("MainMixer");
+            if (mixer == null) return;
+
+            var allGroups = mixer.FindMatchingGroups(""); //new string[] {"Music", "SFX", "UI"};
+        
+            StringBuilder sb = new StringBuilder();
+
+            sb.AppendLine("// AUTO-GENERATED CODE - DO NOT MODIFY");
+            sb.AppendLine("namespace Audio");
+            sb.AppendLine("{");
+            sb.AppendLine("    public enum AudioGroupID");
+            sb.AppendLine("    {");
+            sb.AppendLine("        None = 0,");
+
+            foreach (AudioMixerGroup group in allGroups)
+            {
+                var groupName = group.ToString();
+                if (groupName != "Master")
+                    sb.AppendLine($"        {groupName},");
+            }
+
+            sb.AppendLine("    }");
+            sb.AppendLine("}");
+        
+            File.WriteAllText(GroupEnumPath, sb.ToString());
+            AssetDatabase.Refresh();
         }
 
-        sb.AppendLine("    }");
-        sb.AppendLine("}");
+        private static AudioSettings GetAudioSetting()
+        {
+            AudioSettings mySo = AssetDatabase.LoadAssetAtPath<AudioSettings>("Assets/AudioSettings.asset");
+            return mySo;
+        }
+
+        private static string GetScriptPath()
+        {
+            AudioSettings mySo = GetAudioSetting();
+            if (mySo == null) return null;
+            return mySo.scriptsAudioPath;
+        }
         
-        File.WriteAllText(GroupEnumPath, sb.ToString());
-        AssetDatabase.Refresh();
+        private static string GetAudioResourcePath()
+        {
+            AudioSettings mySo = GetAudioSetting();
+            if (mySo == null)
+            {
+                Debug.LogWarning("Audio settings not found");
+                return null;
+            }
+            return mySo.audioResourcesPath;
+        }
+        
+        private static string GetScriptablePath()
+        {
+            AudioSettings mySo = GetAudioSetting();
+            if (mySo == null) return null;
+            return mySo.scriptablesPath;
+        }
     }
 }

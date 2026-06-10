@@ -9,6 +9,7 @@ namespace Audio
         MouseClick,
         MouseRelease,
         Rollover,
+        Switch_CON_ESPACIOS,
         Switch,
     }
 }

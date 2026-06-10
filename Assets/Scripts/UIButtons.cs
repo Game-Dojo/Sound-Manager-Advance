@@ -5,15 +5,15 @@ public class UIButtons : MonoBehaviour
 {
     public void SoundOne()
     {
-        AudioManager.Instance.PlayUISound(AudioID.Click, AudioManager.AudioType.Modified);
+        AudioManager.Instance.PlayUISound(AudioID.Click, AudioManager.AudioMode.Modified);
     }
     public void SoundTwo()
     {
-        AudioManager.Instance.PlayUISound(AudioID.Rollover, AudioManager.AudioType.Modified);
+        AudioManager.Instance.PlayUISound(AudioID.Rollover, AudioManager.AudioMode.Modified);
     }
     public void SoundThree()
     {
-        AudioManager.Instance.PlayUISound(AudioID.MouseRelease, AudioManager.AudioType.Modified);
+        AudioManager.Instance.PlayUISound(AudioID.MouseRelease, AudioManager.AudioMode.Modified);
     }
 
     public void FadeMusic()
