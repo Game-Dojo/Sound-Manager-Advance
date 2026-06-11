@@ -91,8 +91,6 @@ namespace Editor
         {
             if (IsGroupEnumCreated()) File.Delete(GroupEnumPath);
             if (IsAudioEnumCreated()) File.Delete(EnumPath);
-            
-            
         }
         
         public static bool IsAudioEnumCreated() => File.Exists(EnumPath);

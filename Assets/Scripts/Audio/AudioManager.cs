@@ -289,7 +289,7 @@ namespace Audio
             foreach (var source in _sourcesPool)
             {
                 var mixerGroup = source.outputAudioMixerGroup;
-                if (mixerGroup.name == id.ToString())
+                if (mixerGroup && mixerGroup.name == id.ToString())
                     return source;
             }
 

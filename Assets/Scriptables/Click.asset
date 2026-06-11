@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dfabd1bbbc66ea6479515210bf2a99ae, type: 3}
   m_Name: Click
   m_EditorClassIdentifier: Assembly-CSharp::Audio.AudioScriptable
-  clip: {fileID: 0}
+  clip: {fileID: 8300000, guid: 8d68f8790cbecb44bb499cdbbd878789, type: 3}
   groupID: 0
   volume: {x: 1, y: 1}
   pitch: {x: 1, y: 1}

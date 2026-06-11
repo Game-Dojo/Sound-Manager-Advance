@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dfabd1bbbc66ea6479515210bf2a99ae, type: 3}
   m_Name: Rollover
   m_EditorClassIdentifier: Assembly-CSharp::Audio.AudioScriptable
-  clip: {fileID: 0}
+  clip: {fileID: 8300000, guid: c2a976e1a5a18cd49b6a153bf3b6894f, type: 3}
   groupID: 0
   volume: {x: 1, y: 1}
   pitch: {x: 1, y: 1}
