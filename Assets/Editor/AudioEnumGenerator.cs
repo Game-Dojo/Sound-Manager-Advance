@@ -11,13 +11,11 @@ namespace Editor
 {
     public class AudioEnumGenerator : AssetPostprocessor
     {
-        private const string BasePath = "Assets/";
-        
-        private const string EnumPath = "Assets/Scripts/Audio/AudioID.cs";
         private const string GroupEnumPath = "Assets/Scripts/Audio/AudioGroupID.cs";
+        private const string EnumPath = "Assets/Scripts/Audio/AudioID.cs";
+        
         private const string AudioFolder = "Assets/Resources/Audio/";
 
-        [MenuItem("Tools/2. Generate Audio Enums")]
         public static void GenerateEnum()
         {
             var audioPath = GetAudioResourcePath();
@@ -57,7 +55,6 @@ namespace Editor
             AssetDatabase.Refresh();
         }
 
-        [MenuItem("Tools/1. Generate Group Enums")]
         public static void GenerateGroupsEnum()
         {
             if (!Directory.Exists(AudioFolder)) return;
@@ -90,6 +87,18 @@ namespace Editor
             AssetDatabase.Refresh();
         }
 
+        public static void CleanAll()
+        {
+            if (IsGroupEnumCreated()) File.Delete(GroupEnumPath);
+            if (IsAudioEnumCreated()) File.Delete(EnumPath);
+            
+            
+        }
+        
+        public static bool IsAudioEnumCreated() => File.Exists(EnumPath);
+        public static bool IsGroupEnumCreated() => File.Exists(GroupEnumPath);
+        
+        #region Settings
         private static AudioSettings GetAudioSetting()
         {
             AudioSettings mySo = AssetDatabase.LoadAssetAtPath<AudioSettings>("Assets/AudioSettings.asset");
@@ -120,5 +129,6 @@ namespace Editor
             if (mySo == null) return null;
             return mySo.scriptablesPath;
         }
+        #endregion
     }
 }

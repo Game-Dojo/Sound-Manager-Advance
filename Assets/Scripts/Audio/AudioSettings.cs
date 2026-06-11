@@ -13,5 +13,13 @@ namespace Audio
         
         [Header("Curves")]
         public AnimationCurve fadeCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+
+        public void SetPaths(string scrPath, string resourcePath, string scriptables, string audio)
+        {
+            scriptsAudioPath = $"Assets/{scrPath}/{audio}/";
+            audioResourcesPath = $"Assets/{resourcePath}/{audio}/";
+            scriptablesPath = $"Assets/{scriptables}/";
+            audioPath = audio;
+        }
     }
 }

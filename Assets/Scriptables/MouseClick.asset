@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dfabd1bbbc66ea6479515210bf2a99ae, type: 3}
   m_Name: MouseClick
   m_EditorClassIdentifier: Assembly-CSharp::Audio.AudioScriptable
-  clip: {fileID: 8300000, guid: d9ffa33e1ae124047896e638dd66e1b1, type: 3}
-  groupID: 2
+  clip: {fileID: 0}
+  groupID: 0
   volume: {x: 1, y: 1}
   pitch: {x: 1, y: 1}
   use3DSound: 0

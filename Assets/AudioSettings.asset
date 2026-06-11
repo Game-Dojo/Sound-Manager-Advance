@@ -12,6 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 07753b19385e77e4ebc9d2bb3acb9f09, type: 3}
   m_Name: AudioSettings
   m_EditorClassIdentifier: Assembly-CSharp::Audio.AudioSettings
+  scriptsAudioPath: Assets/Scripts/Audio/
+  audioResourcesPath: Assets/Resources/Audio/
   scriptablesPath: Assets/Scriptables/
   audioPath: Audio
   fadeCurve:
