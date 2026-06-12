@@ -8,6 +8,7 @@ namespace Audio
         Click,
         MouseClick,
         MouseRelease,
+        PRUEBA_SONIDO,
         Rollover,
         Switch_CON_ESPACIOS,
         Switch,

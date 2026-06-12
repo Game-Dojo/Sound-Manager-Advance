@@ -9,6 +9,9 @@ public class GameManager : MonoBehaviour
     private IEnumerator Start()
     {
         yield return new WaitForEndOfFrame();
+        
+        //AudioManager.Instance.PlaySound(AudioID.PRUEBA_SONIDO, true, AudioManager.AudioMode.Flat);
+        
         if (locatedSound)
             AudioManager.Instance.PlayFollow(AudioID.Switch_CON_ESPACIOS, locatedSound);
     }

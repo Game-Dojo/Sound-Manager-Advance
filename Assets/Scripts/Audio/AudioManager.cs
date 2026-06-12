@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Audio;
@@ -67,22 +68,41 @@ namespace Audio
         }
 
         #region Play Methods
-        public void PlaySound(AudioID id)
+        public void PlaySound(AudioID id, bool loop = false, AudioMode mode = AudioMode.Flat)
         {
             if (!_loadedScriptables.TryGetValue(id, out AudioScriptable scriptable)) return;
+            
             AudioClip clip = scriptable.Get();
             if (clip == null) return;
 
-            var source = GetAudioSource(scriptable.GetID());
+            var source = GetFreeSource();
             if (!source)
             {
                 Debug.LogWarning("Audio Source is null");
                 return;
             }
             
-            ChangePitchAndVolume(source, scriptable);
+            if (scriptable.groupID != AudioGroupID.None)
+                source.outputAudioMixerGroup = mainMixer.FindMatchingGroups(scriptable.groupID.ToString())[0];
+            
+            source.gameObject.SetActive(true);
+            
+            if (mode != AudioMode.Flat)
+                ChangePitchAndVolume(source, scriptable);
+            
+            if (loop)
+            {
+                source.clip = clip;
+                source.loop = true;
+                source.Play();
+                return;
+            }
+            
             source.PlayOneShot(clip);
+            if (_disableSourceRoutine != null) StopCoroutine(_disableSourceRoutine);
+            _disableSourceRoutine = StartCoroutine(nameof(SourceDisable), source);
         }
+        
         public void PlaySoundAt(AudioID id, Vector3 position)
         {
             if (!_loadedScriptables.TryGetValue(id, out AudioScriptable scriptable)) return;
@@ -353,6 +373,7 @@ namespace Audio
             
             var clipName = clip.name.Replace(" ", "_");
             string path = $"{audioSettings.scriptablesPath}{clipName}.asset";
+            
             AudioScriptable mySo = AssetDatabase.LoadAssetAtPath<AudioScriptable>(path);
             if (!mySo) return;
 

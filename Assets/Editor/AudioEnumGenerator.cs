@@ -42,9 +42,12 @@ namespace Editor
                 string path = AssetDatabase.GUIDToAssetPath(guid);
                 string name = Path.GetFileNameWithoutExtension(path).Replace(" ", "_");
                 sb.AppendLine($"        {name},");
-            
+
+                var scrPath = $"{scriptablePath}{name}.asset";
+                if (File.Exists(scrPath)) continue;
+                
                 AudioScriptable newAsset = ScriptableObject.CreateInstance<AudioScriptable>();
-                UnityEditor.AssetDatabase.CreateAsset(newAsset, $"{scriptablePath}{name}.asset");
+                UnityEditor.AssetDatabase.CreateAsset(newAsset, scrPath);
                 UnityEditor.AssetDatabase.SaveAssets();
             }
 
