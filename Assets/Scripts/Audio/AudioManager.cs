@@ -28,6 +28,9 @@ namespace Audio
         private Coroutine _activeFadeRoutine;
         
         private AudioMixer _mainMixer;
+
+        private const string MusicExposed = "MusicVolume";
+
         #endregion
         
         public enum AudioMode
@@ -284,7 +287,7 @@ namespace Audio
         {
             float elapsed = 0f;
 
-            _mainMixer.GetFloat("MusicVolume", out float currentDb);
+            _mainMixer.GetFloat(MusicExposed, out float currentDb);
             float startLinear = Mathf.Pow(10, currentDb / 20);
 
             while (elapsed < duration)
@@ -295,12 +298,12 @@ namespace Audio
                 float curveWeight = audioSettings.fadeCurve.Evaluate(percentage);
                 float currentVolume = Mathf.Lerp(startLinear, targetLinear, curveWeight);
                 
-                ChangeVolume("MusicVolume", currentVolume);
+                ChangeVolume(MusicExposed, currentVolume);
 
                 yield return null;
             }
 
-            ChangeVolume("MusicVolume", targetLinear);
+            ChangeVolume(MusicExposed, targetLinear);
         }
         #endregion
         

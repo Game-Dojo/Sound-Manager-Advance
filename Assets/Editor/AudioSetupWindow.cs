@@ -1,5 +1,5 @@
-using System.IO;
 using Audio;
+using System.IO;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Audio;
@@ -124,7 +124,6 @@ namespace Editor
             if (GUILayout.Button("Support", GUILayout.Height(btnHeight))) Application.OpenURL("https://github.com/Game-Dojo/Sound-Manager-Advance/issues");
             EditorGUILayout.EndHorizontal();
         }
-
         private void DrawPreferencesTab()
         {
             Rect bannerRect = GUILayoutUtility.GetRect(0, 80, GUILayout.ExpandWidth(true));
