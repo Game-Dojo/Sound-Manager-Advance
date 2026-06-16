@@ -1,4 +1,3 @@
-using System;
 using Audio;
 using System.IO;
 using System.Text;
@@ -11,16 +10,22 @@ namespace Editor
 {
     public class AudioEnumGenerator : AssetPostprocessor
     {
-        private const string GroupEnumPath = "Assets/Scripts/Audio/AudioGroupID.cs";
-        private const string EnumPath = "Assets/Scripts/Audio/AudioID.cs";
-        
-        private const string AudioFolder = "Assets/Resources/Audio/";
+        private const string GroupEnumFileName = "AudioGroupID.cs";
+        private const string AudioEnumFileName = "AudioID.cs";
 
+        #region Generation
         public static void GenerateEnum()
         {
             var audioPath = GetAudioResourcePath();
             var scriptablePath = GetScriptablePath();
-
+            var scriptsPath = GetScriptPath();
+            
+            if (audioPath == "" || scriptablePath == "" || scriptsPath == "")
+            {
+                Debug.LogWarning("Resources/Scriptable or Script paths are invalid");
+                return;
+            }
+            
             if (!Directory.Exists(audioPath))
             {
                 Debug.LogWarning("Folder does not exist: " + audioPath);
@@ -54,16 +59,28 @@ namespace Editor
             sb.AppendLine("    }");
             sb.AppendLine("}");
         
-            File.WriteAllText(EnumPath, sb.ToString());
+            File.WriteAllText($"{scriptsPath}{AudioEnumFileName}", sb.ToString());
             AssetDatabase.Refresh();
         }
 
         public static void GenerateGroupsEnum()
         {
-            if (!Directory.Exists(AudioFolder)) return;
+            var audioResourcesPath = GetAudioResourcePath();
+            var scriptsPath = GetScriptPath();
+            if (audioResourcesPath == "" || scriptsPath == "")
+            {
+                Debug.LogWarning("Resources & Scripts paths are invalid");
+                return;
+            }
+            
+            if (!Directory.Exists(audioResourcesPath)) return;
 
             var mixer = Resources.Load<AudioMixer>("MainMixer");
-            if (mixer == null) return;
+            if (!mixer)
+            {
+                Debug.LogWarning("AudioMixer not found in Resources!");
+                return;
+            }
 
             var allGroups = mixer.FindMatchingGroups(""); //new string[] {"Music", "SFX", "UI"};
         
@@ -86,23 +103,77 @@ namespace Editor
             sb.AppendLine("    }");
             sb.AppendLine("}");
         
-            File.WriteAllText(GroupEnumPath, sb.ToString());
+            File.WriteAllText($"{scriptsPath}{GroupEnumFileName}", sb.ToString());
             AssetDatabase.Refresh();
         }
 
+        private static void GenerateEmptyAudioList()
+        {
+            var audioResourcesPath = GetAudioResourcePath();
+            var scriptsPath = GetScriptPath();
+            if (audioResourcesPath == "" || scriptsPath == "")
+            {
+                Debug.LogWarning("Resources & Scripts paths are invalid");
+                return;
+            }
+            
+            if (!Directory.Exists(audioResourcesPath)) return;
+            
+            StringBuilder sb = new StringBuilder();
+
+            sb.AppendLine("// AUTO-GENERATED CODE - DO NOT MODIFY");
+            sb.AppendLine("namespace Audio");
+            sb.AppendLine("{");
+            sb.AppendLine("    public enum AudioID");
+            sb.AppendLine("    {");
+            sb.AppendLine("        None = 0");
+            sb.AppendLine("    }");
+            sb.AppendLine("}");
+        
+            File.WriteAllText($"{scriptsPath}{AudioEnumFileName}", sb.ToString());
+            AssetDatabase.Refresh();
+        }
+
+        private static void GenerateEmptyAudioGroups()
+        {
+            var audioResourcesPath = GetAudioResourcePath();
+            var scriptsPath = GetScriptPath();
+            if (audioResourcesPath == "" || scriptsPath == "")
+            {
+                Debug.LogWarning("Resources & Scripts paths are invalid");
+                return;
+            }
+            
+            if (!Directory.Exists(audioResourcesPath)) return;
+
+            StringBuilder sb = new StringBuilder();
+
+            sb.AppendLine("// AUTO-GENERATED CODE - DO NOT MODIFY");
+            sb.AppendLine("namespace Audio");
+            sb.AppendLine("{");
+            sb.AppendLine("    public enum AudioGroupID");
+            sb.AppendLine("    {");
+            sb.AppendLine("        None = 0");
+            sb.AppendLine("    }");
+            sb.AppendLine("}");
+        
+            File.WriteAllText($"{scriptsPath}{GroupEnumFileName}", sb.ToString());
+            AssetDatabase.Refresh();
+        }
+        #endregion
+        
+        #region Clean up
         public static void CleanAll()
         {
-            if (IsGroupEnumCreated()) File.Delete(GroupEnumPath);
-            if (IsAudioEnumCreated()) File.Delete(EnumPath);
+            GenerateEmptyAudioGroups();
+            GenerateEmptyAudioList();
         }
-        
-        public static bool IsAudioEnumCreated() => File.Exists(EnumPath);
-        public static bool IsGroupEnumCreated() => File.Exists(GroupEnumPath);
+        #endregion
         
         #region Settings
         private static AudioSettings GetAudioSetting()
         {
-            AudioSettings mySo = AssetDatabase.LoadAssetAtPath<AudioSettings>("Assets/AudioSettings.asset");
+            AudioSettings mySo = AssetDatabase.LoadAssetAtPath<AudioSettings>(AudioSetupWindow.SettingsPath);
             return mySo;
         }
 
@@ -113,7 +184,7 @@ namespace Editor
             return mySo.scriptsAudioPath;
         }
         
-        private static string GetAudioResourcePath()
+        public static string GetAudioResourcePath()
         {
             AudioSettings mySo = GetAudioSetting();
             if (mySo == null)
@@ -124,7 +195,7 @@ namespace Editor
             return mySo.audioResourcesPath;
         }
         
-        private static string GetScriptablePath()
+        public static string GetScriptablePath()
         {
             AudioSettings mySo = GetAudioSetting();
             if (mySo == null) return null;

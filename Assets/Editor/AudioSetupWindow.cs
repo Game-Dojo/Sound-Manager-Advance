@@ -1,5 +1,9 @@
+using System.IO;
+using Audio;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Audio;
+using AudioSettings = Audio.AudioSettings;
 
 namespace Editor
 {
@@ -12,19 +16,25 @@ namespace Editor
         private GUIStyle _greenButtonStyle;
         private GUIStyle _yellowButtonStyle;
         private GUIStyle _footerStyle;
+        private GUIStyle _miniLabelStyle;
         
-        private AnimationCurve _animationCurve = AnimationCurve.Linear(0, 0, 1, 1);
+        [SerializeField] private static AudioMixer _targetMixer;
+        [SerializeField] private AnimationCurve _animationCurve = AnimationCurve.Linear(0, 0, 1, 1);
 
+        public const string SettingsPath = "Assets/AudioSettings.asset";
+        private const string AudioPath = "Audio";
+        
         private string _resourcesPath = "Resources";
         private string _scriptablePath = "Scriptables";
         private string _scriptsPath = "Scripts";
-        private string _audioPath = "Audio";
         
         [MenuItem("Tools/Audio Manager")]
         public static void ShowWindow()
         {
             AudioSetupWindow window = GetWindow<AudioSetupWindow>("Audio Manager Panel");
             window.minSize = new Vector2(300, 500);
+
+            FindAudioSettings();
         }
 
         private void OnGUI()
@@ -56,25 +66,7 @@ namespace Editor
             GUILayout.Space(10);
         }
 
-        private void InitStyles()
-        {
-            if (_headerStyle != null) return;
-
-            _headerStyle = new GUIStyle(GUI.skin.box);
-            _headerStyle.normal.textColor = Color.white;
-            _headerStyle.alignment = TextAnchor.MiddleCenter;
-            _headerStyle.fontStyle = FontStyle.Bold;
-            _headerStyle.fontSize = 20;
-
-            _greenButtonStyle = new GUIStyle(GUI.skin.button);
-            _greenButtonStyle.normal.textColor = Color.green;
-            _greenButtonStyle.fontStyle = FontStyle.Bold;
-
-            _yellowButtonStyle = new GUIStyle(GUI.skin.button);
-            _yellowButtonStyle.normal.textColor = Color.yellow;
-
-            _footerStyle = new GUIStyle(EditorStyles.centeredGreyMiniLabel);
-        }
+        #region Tabs Layout
         private void DrawSetupTab()
         {
             Rect bannerRect = GUILayoutUtility.GetRect(0, 100, GUILayout.ExpandWidth(true));
@@ -82,26 +74,28 @@ namespace Editor
 
             GUILayout.Space(10);
 
+            int audioIDCount = System.Enum.GetNames(typeof(AudioID)).Length;
+            int audioGroupCount = System.Enum.GetNames(typeof(AudioGroupID)).Length;
+            
             EditorGUILayout.LabelField("AudioManager v0.0.1 [Release build]", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("Group Enums: " + (AudioEnumGenerator.IsGroupEnumCreated() ? "Created!" : "not created"), EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("Audio Enums: " + (AudioEnumGenerator.IsAudioEnumCreated() ? "Created!" : "not created"), EditorStyles.miniLabel);
-
+            EditorGUILayout.LabelField("Group Enums: " + ((audioIDCount > 1) ? "<color=green>Created!</color>" : "<color=red>not created</color>"), _miniLabelStyle);
+            EditorGUILayout.LabelField("Audio Enums: " + ((audioGroupCount > 1) ? "<color=green>Created!</color>" : "<color=red>not created</color>"), _miniLabelStyle);
+            
             GUILayout.Space(15);
 
             Color defaultColor = GUI.backgroundColor;
 
             GUI.backgroundColor = new Color(0.1f, 0.4f, 0.1f); // Dark Green
+            
             if (GUILayout.Button("1. Create Group Enums", _greenButtonStyle, GUILayout.Height(40)))
             {
-                Debug.Log("Generate Group Enums");
-                Editor.AudioEnumGenerator.GenerateGroupsEnum();
+                GenerateGroupEnums();
             }
 
             GUI.backgroundColor = new Color(0.1f, 0.4f, 0.1f); // Dark Green
             if (GUILayout.Button("2. Create Audio Enums", _greenButtonStyle, GUILayout.Height(40)))
             {
-                Debug.Log("Generate Audio Enums");
-                Editor.AudioEnumGenerator.GenerateEnum();
+                GenerateAudioEnums();
             }
             
             GUILayout.Space(5);
@@ -109,9 +103,7 @@ namespace Editor
             GUI.backgroundColor = new Color(0.4f, 0.4f, 0.1f); // Dark Yellow/Gold
             if (GUILayout.Button("Clean Audio Scriptables", _yellowButtonStyle, GUILayout.Height(30)))
             {
-                Debug.Log("Clean all scriptable audio assets");
-                AudioEnumGenerator.CleanAll();
-                DeleteScriptables();
+                RemoveScriptables();
             }
             
             GUI.backgroundColor = defaultColor; // Reset color
@@ -132,6 +124,7 @@ namespace Editor
             if (GUILayout.Button("Support", GUILayout.Height(btnHeight))) Application.OpenURL("https://github.com/Game-Dojo/Sound-Manager-Advance/issues");
             EditorGUILayout.EndHorizontal();
         }
+
         private void DrawPreferencesTab()
         {
             Rect bannerRect = GUILayoutUtility.GetRect(0, 80, GUILayout.ExpandWidth(true));
@@ -143,29 +136,49 @@ namespace Editor
             subHeaderStyle.fontSize = 13;
             subHeaderStyle.normal.textColor = new Color(0.7f, 0.7f, 0.7f);
             
+            _targetMixer = (AudioMixer)EditorGUILayout.ObjectField(
+                "Target Mixer",
+                _targetMixer,
+                typeof(AudioMixer),
+                false
+            );
+            GUILayout.Space(4);
+            
             EditorGUILayout.LabelField("Paths/Routes", subHeaderStyle);
             GUILayout.Space(4);
             
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("Scripts Path", GUILayout.Width(100));
             _scriptsPath = EditorGUILayout.TextField(_scriptsPath);
+            if (GUILayout.Button("...", GUILayout.Width(20)))
+            {
+                _scriptsPath = GetSelectedFolderPath("Scripts", _scriptsPath);
+            }
+
             EditorGUILayout.EndHorizontal();
             
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("Resources Path", GUILayout.Width(100));
             _resourcesPath = EditorGUILayout.TextField(_resourcesPath);
+            if (GUILayout.Button("...", GUILayout.Width(20)))
+            {
+                _resourcesPath = GetSelectedFolderPath("Resources", _resourcesPath);
+            }
             EditorGUILayout.EndHorizontal();
             
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("Scriptables Path", GUILayout.Width(100));
             _scriptablePath = EditorGUILayout.TextField(_scriptablePath);
+            if (GUILayout.Button("...", GUILayout.Width(20)))
+            {
+                _scriptablePath = GetSelectedFolderPath("Scriptables", _scriptablePath);
+            }
             EditorGUILayout.EndHorizontal();
             
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("Audio Path", GUILayout.Width(100));
-            _audioPath = EditorGUILayout.TextField(_audioPath);
-            EditorGUILayout.EndHorizontal();
             GUILayout.Space(8);
+            
+            EditorGUILayout.LabelField("Fine tuning", subHeaderStyle);
+            GUILayout.Space(4);
             
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("Fade Curve", GUILayout.Width(100));
@@ -177,38 +190,122 @@ namespace Editor
             EditorGUILayout.BeginHorizontal();
             if (GUILayout.Button("Save Settings", GUILayout.Height(25)))
             {
-                Debug.Log("Save Settings");
                 UpdateSettings();
             };
             EditorGUILayout.EndHorizontal();
         }
+        #endregion
         
+        #region Private Methods
+        private void GenerateAudioEnums()
+        {
+            int audioIDCount = System.Enum.GetNames(typeof(AudioID)).Length;
+            
+            if (audioIDCount > 1)
+            {
+                Debug.LogWarning("Audio enums already created!");
+                return;
+            }
+            
+            Editor.AudioEnumGenerator.GenerateEnum();
+        }
+        private void GenerateGroupEnums()
+        {
+            int audioGroupCount = System.Enum.GetNames(typeof(AudioGroupID)).Length;
+            
+            if (audioGroupCount > 1)
+            {
+                Debug.LogWarning("Groups enums already created!");
+                return;
+            }
+            
+            Editor.AudioEnumGenerator.GenerateGroupsEnum();
+        }
+        
+        private static void FindAudioSettings()
+        {
+            AudioSettings mySo = AssetDatabase.LoadAssetAtPath<AudioSettings>(SettingsPath);
+            if (mySo)
+            {
+                _targetMixer = mySo.targetMixer;
+                return;
+            }
+            
+            string[] guids = AssetDatabase.FindAssets("AudioSettings t:ScriptableObject");
+            if (guids.Length <= 0) return;
+            string path = AssetDatabase.GUIDToAssetPath(guids[0]);
+            AudioSettings settingsSo = AssetDatabase.LoadAssetAtPath<AudioSettings>(path);
+            _targetMixer = settingsSo.targetMixer;
+        }
+        private void UpdateSettings()
+        {
+            AudioSettings mySo = AssetDatabase.LoadAssetAtPath<AudioSettings>(SettingsPath);
+            if (!mySo) return;
+
+            mySo.SetMixer(_targetMixer);
+            mySo.SetPaths(_scriptsPath, _resourcesPath, _scriptablePath, AudioPath);
+                
+            EditorUtility.SetDirty(mySo);
+            AssetDatabase.SaveAssets();
+        }
+        private void RemoveScriptables()
+        {
+            AudioEnumGenerator.CleanAll();
+            DeleteScriptables();
+        }
+        
+        #endregion
+        
+        #region Style
+        private void InitStyles()
+        {
+            if (_headerStyle != null) return;
+
+            _headerStyle = new GUIStyle(GUI.skin.box);
+            _headerStyle.normal.textColor = Color.white;
+            _headerStyle.alignment = TextAnchor.MiddleCenter;
+            _headerStyle.fontStyle = FontStyle.Bold;
+            _headerStyle.fontSize = 20;
+            
+            _miniLabelStyle = new GUIStyle(EditorStyles.miniLabel);
+            _miniLabelStyle.normal.textColor = Color.white;
+            _miniLabelStyle.richText = true;
+
+            _greenButtonStyle = new GUIStyle(GUI.skin.button);
+            _greenButtonStyle.normal.textColor = Color.green;
+            _greenButtonStyle.fontStyle = FontStyle.Bold;
+
+            _yellowButtonStyle = new GUIStyle(GUI.skin.button);
+            _yellowButtonStyle.normal.textColor = Color.yellow;
+
+            _footerStyle = new GUIStyle(EditorStyles.centeredGreyMiniLabel);
+        }
+        #endregion
+        
+        #region Static Methods
+        private static string GetSelectedFolderPath(string folderName = "Folder", string optional = "")
+        {
+            var fullPath = EditorUtility.OpenFolderPanel($"Select {folderName} Location", "Assets", "");
+            if (string.IsNullOrEmpty(fullPath)) return optional;
+            string projectPath = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+            return fullPath.Substring(projectPath.Length + 8);
+        }
         private static void DeleteScriptables()
         {
-            string[] guids = AssetDatabase.FindAssets("t:AudioScriptable", new[] { "Assets/Scriptables" });
+            var scriptablePath = AudioEnumGenerator.GetScriptablePath();
+            if (scriptablePath == "")
+            {
+                Debug.Log("Must set an ScriptableObjects path!");
+                return;
+            }
+            
+            string[] guids = AssetDatabase.FindAssets("t:AudioScriptable", new[] { scriptablePath });
             foreach (string guid in guids)
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
                 AssetDatabase.DeleteAsset(path);
             }
         }
-
-        private void UpdateSettings()
-        {
-            string path = $"Assets/AudioSettings.asset";
-            Audio.AudioSettings mySo = AssetDatabase.LoadAssetAtPath<Audio.AudioSettings>(path);
-            if (!mySo) return;
-
-            //mySo.scriptsAudioPath = $"Assets/{_scriptsPath}/{_audioPath}";
-            //mySo.audioResourcesPath = $"Assets/{_resourcesPath}/{_audioPath}";
-            //mySo.scriptablesPath = $"Assets/{_scriptablePath}/{_audioPath}";
-            //mySo.audioPath = $"{_audioPath}";
-            
-            mySo.SetPaths(_scriptsPath, _resourcesPath, _scriptablePath, _audioPath);
-                
-            EditorUtility.SetDirty(mySo);
-            AssetDatabase.SaveAssets();
-        }
-
+        #endregion
     }
 }

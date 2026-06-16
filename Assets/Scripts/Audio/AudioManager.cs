@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Audio;
@@ -15,12 +14,6 @@ namespace Audio
         [Header("Settings")]
         [SerializeField] private AudioSettings audioSettings;
 
-        [Header("Mixer")]
-        [SerializeField] private AudioMixer mainMixer;
-        
-        [Header("Fade Settings")]
-        [SerializeField] private AnimationCurve fadeCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
-        
         [Header("Events")]
         [Space(5)]
         [SerializeField] private UnityEvent onMusicVolumeChanged;
@@ -33,6 +26,8 @@ namespace Audio
         
         private Coroutine _disableSourceRoutine;
         private Coroutine _activeFadeRoutine;
+        
+        private AudioMixer _mainMixer;
         #endregion
         
         public enum AudioMode
@@ -64,7 +59,14 @@ namespace Audio
         private void Start()
         {
             SaveClips();
-            if (mainMixer) AssignMixerGroups();
+            if (!_mainMixer)
+            {
+                AudioSettings mySo = AssetDatabase.LoadAssetAtPath<AudioSettings>("Assets/AudioSettings.asset");
+                if (!mySo) return;
+                _mainMixer = mySo.targetMixer;
+            }
+            
+            AssignMixerGroups();
         }
 
         #region Play Methods
@@ -83,7 +85,7 @@ namespace Audio
             }
             
             if (scriptable.groupID != AudioGroupID.None)
-                source.outputAudioMixerGroup = mainMixer.FindMatchingGroups(scriptable.groupID.ToString())[0];
+                source.outputAudioMixerGroup = _mainMixer.FindMatchingGroups(scriptable.groupID.ToString())[0];
             
             source.gameObject.SetActive(true);
             
@@ -102,7 +104,6 @@ namespace Audio
             if (_disableSourceRoutine != null) StopCoroutine(_disableSourceRoutine);
             _disableSourceRoutine = StartCoroutine(nameof(SourceDisable), source);
         }
-        
         public void PlaySoundAt(AudioID id, Vector3 position)
         {
             if (!_loadedScriptables.TryGetValue(id, out AudioScriptable scriptable)) return;
@@ -186,7 +187,7 @@ namespace Audio
             var source = GetAudioSource(scriptable.GetID());
             if (!source)
             {
-                Debug.LogWarning("Audio Source is null");
+                Debug.LogWarning($"Audio Source ({scriptable.GetID()}) is null");
                 return;
             }
             
@@ -225,7 +226,7 @@ namespace Audio
             source.maxDistance = 50.0f;
             
             if (scriptable.groupID != AudioGroupID.None)
-                source.outputAudioMixerGroup = mainMixer.FindMatchingGroups(scriptable.groupID.ToString())[0];
+                source.outputAudioMixerGroup = _mainMixer.FindMatchingGroups(scriptable.groupID.ToString())[0];
             
             if (scriptable.use3DSound)
             {
@@ -267,7 +268,7 @@ namespace Audio
         private void ChangeVolume(string mixerGroup, float value)
         {
             float db = Mathf.Log10(Mathf.Clamp(value, 0.0001f, 10f)) * 20;
-            mainMixer.SetFloat(mixerGroup, db);
+            _mainMixer.SetFloat(mixerGroup, db);
         }
         private void ChangePitchAndVolume(AudioSource source, AudioScriptable audioScript)
         {
@@ -283,7 +284,7 @@ namespace Audio
         {
             float elapsed = 0f;
 
-            mainMixer.GetFloat("MusicVolume", out float currentDb);
+            _mainMixer.GetFloat("MusicVolume", out float currentDb);
             float startLinear = Mathf.Pow(10, currentDb / 20);
 
             while (elapsed < duration)
@@ -291,7 +292,7 @@ namespace Audio
                 elapsed += Time.deltaTime;
             
                 float percentage = Mathf.Clamp01(elapsed / duration);
-                float curveWeight = fadeCurve.Evaluate(percentage);
+                float curveWeight = audioSettings.fadeCurve.Evaluate(percentage);
                 float currentVolume = Mathf.Lerp(startLinear, targetLinear, curveWeight);
                 
                 ChangeVolume("MusicVolume", currentVolume);
@@ -335,7 +336,7 @@ namespace Audio
 
             AudioSource source = go.AddComponent<AudioSource>();
             if (useGroup)
-                source.outputAudioMixerGroup = mainMixer.FindMatchingGroups(groupName)[0];
+                source.outputAudioMixerGroup = _mainMixer.FindMatchingGroups(groupName)[0];
             source.playOnAwake = false;
 
             go.SetActive(false);
@@ -384,7 +385,7 @@ namespace Audio
         }
         private void AssignMixerGroups()
         {
-            var allGroups = mainMixer.FindMatchingGroups("");
+            var allGroups = _mainMixer.FindMatchingGroups("");
 
             foreach (AudioMixerGroup group in allGroups)
             {

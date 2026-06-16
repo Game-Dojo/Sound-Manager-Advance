@@ -1,10 +1,13 @@
 using UnityEngine;
+using UnityEngine.Audio;
 
 namespace Audio
 {
     [CreateAssetMenu(fileName = "AudioSettings", menuName = "AudioManager/Audio Setting", order = 0)]
     public class AudioSettings : ScriptableObject
     {
+        public AudioMixer targetMixer;
+        
         [Header("Paths")] 
         public string scriptsAudioPath = "Assets/Scripts/Audio/";
         public string audioResourcesPath = "Assets/Resources/Audio/";
@@ -14,6 +17,11 @@ namespace Audio
         [Header("Curves")]
         public AnimationCurve fadeCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
 
+        public void SetMixer(AudioMixer audioMixer)
+        {
+            targetMixer = audioMixer;
+        }
+        
         public void SetPaths(string scrPath, string resourcePath, string scriptables, string audio)
         {
             scriptsAudioPath = $"Assets/{scrPath}/{audio}/";

@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Audio.AudioScriptable
   clip: {fileID: 8300000, guid: ad8008ca21d04634483622d898feb077, type: 3}
   groupID: 2
-  volume: {x: 1, y: 1.2937063}
-  pitch: {x: 0.91608393, y: 1.1258742}
+  volume: {x: 1, y: 1}
+  pitch: {x: 1, y: 1}
   use3DSound: 0
   useCustomCurve: 0
   rolloffMode: 1
