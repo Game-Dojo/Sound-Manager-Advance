@@ -78,8 +78,8 @@ namespace Editor
             int audioGroupCount = System.Enum.GetNames(typeof(AudioGroupID)).Length;
             
             EditorGUILayout.LabelField("AudioManager v0.0.1 [Release build]", EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("Group Enums: " + ((audioIDCount > 1) ? "<color=green>Created!</color>" : "<color=red>not created</color>"), _miniLabelStyle);
-            EditorGUILayout.LabelField("Audio Enums: " + ((audioGroupCount > 1) ? "<color=green>Created!</color>" : "<color=red>not created</color>"), _miniLabelStyle);
+            EditorGUILayout.LabelField("Group Enums: " + ((audioGroupCount > 1) ? "<color=green>Created!</color>" : "<color=red>not created</color>"), _miniLabelStyle);
+            EditorGUILayout.LabelField("Audio Enums: " + ((audioIDCount > 1) ? "<color=green>Created!</color>" : "<color=red>not created</color>"), _miniLabelStyle);
             
             GUILayout.Space(15);
 
@@ -198,26 +198,10 @@ namespace Editor
         #region Private Methods
         private void GenerateAudioEnums()
         {
-            int audioIDCount = System.Enum.GetNames(typeof(AudioID)).Length;
-            
-            if (audioIDCount > 1)
-            {
-                Debug.LogWarning("Audio enums already created!");
-                return;
-            }
-            
             Editor.AudioEnumGenerator.GenerateEnum();
         }
         private void GenerateGroupEnums()
         {
-            int audioGroupCount = System.Enum.GetNames(typeof(AudioGroupID)).Length;
-            
-            if (audioGroupCount > 1)
-            {
-                Debug.LogWarning("Groups enums already created!");
-                return;
-            }
-            
             Editor.AudioEnumGenerator.GenerateGroupsEnum();
         }
         
