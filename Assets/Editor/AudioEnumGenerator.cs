@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.Audio;
 using AudioSettings = Audio.AudioSettings;
 
+#if UNITY_EDITOR
 namespace Editor
 {
     public class AudioEnumGenerator : AssetPostprocessor
@@ -212,3 +213,4 @@ namespace Editor
         #endregion
     }
 }
+#endif

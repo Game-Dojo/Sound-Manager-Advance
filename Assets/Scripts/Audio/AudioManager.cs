@@ -5,6 +5,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.Audio;
 using UnityEngine.Events;
+using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
 namespace Audio
@@ -13,7 +14,8 @@ namespace Audio
     {
         [Header("Settings")]
         [SerializeField] private AudioSettings audioSettings;
-
+        [SerializeField] private AudioMixer mainMixer;
+        
         [Header("Events")]
         [Space(5)]
         [SerializeField] private UnityEvent onMusicVolumeChanged;
@@ -27,7 +29,7 @@ namespace Audio
         private Coroutine _disableSourceRoutine;
         private Coroutine _activeFadeRoutine;
         
-        private AudioMixer _mainMixer;
+        
 
         private const string MusicExposed = "MusicVolume";
 
@@ -62,12 +64,15 @@ namespace Audio
         private void Start()
         {
             SaveClips();
-            if (!_mainMixer)
+            
+            #if UNITY_EDITOR
+            if (!mainMixer)
             {
                 AudioSettings mySo = AssetDatabase.LoadAssetAtPath<AudioSettings>("Assets/AudioSettings.asset");
                 if (!mySo) return;
-                _mainMixer = mySo.targetMixer;
+                mainMixer = mySo.targetMixer;
             }
+            #endif
             
             AssignMixerGroups();
         }
@@ -88,7 +93,7 @@ namespace Audio
             }
             
             if (scriptable.groupID != AudioGroupID.None)
-                source.outputAudioMixerGroup = _mainMixer.FindMatchingGroups(scriptable.groupID.ToString())[0];
+                source.outputAudioMixerGroup = mainMixer.FindMatchingGroups(scriptable.groupID.ToString())[0];
             
             source.gameObject.SetActive(true);
             
@@ -229,7 +234,7 @@ namespace Audio
             source.maxDistance = 50.0f;
             
             if (scriptable.groupID != AudioGroupID.None)
-                source.outputAudioMixerGroup = _mainMixer.FindMatchingGroups(scriptable.groupID.ToString())[0];
+                source.outputAudioMixerGroup = mainMixer.FindMatchingGroups(scriptable.groupID.ToString())[0];
             
             if (scriptable.use3DSound)
             {
@@ -271,7 +276,7 @@ namespace Audio
         private void ChangeVolume(string mixerGroup, float value)
         {
             float db = Mathf.Log10(Mathf.Clamp(value, 0.0001f, 10f)) * 20;
-            _mainMixer.SetFloat(mixerGroup, db);
+            mainMixer.SetFloat(mixerGroup, db);
         }
         private void ChangePitchAndVolume(AudioSource source, AudioScriptable audioScript)
         {
@@ -287,7 +292,7 @@ namespace Audio
         {
             float elapsed = 0f;
 
-            _mainMixer.GetFloat(MusicExposed, out float currentDb);
+            mainMixer.GetFloat(MusicExposed, out float currentDb);
             float startLinear = Mathf.Pow(10, currentDb / 20);
 
             while (elapsed < duration)
@@ -339,7 +344,7 @@ namespace Audio
 
             AudioSource source = go.AddComponent<AudioSource>();
             if (useGroup)
-                source.outputAudioMixerGroup = _mainMixer.FindMatchingGroups(groupName)[0];
+                source.outputAudioMixerGroup = mainMixer.FindMatchingGroups(groupName)[0];
             source.playOnAwake = false;
 
             go.SetActive(false);
@@ -364,7 +369,11 @@ namespace Audio
                 if (!Enum.TryParse(clipName, out AudioID id)) continue;
                 
                 _loadedClips.TryAdd(id, clip);
+                #if UNITY_EDITOR
                 EditScriptable(clip, id);
+                #else
+                _loadedScriptables.TryAdd(id, SCRITABLE_OBJECT);
+                #endif
             }
         }
         private void EditScriptable( AudioClip clip, AudioID audioID )
@@ -378,6 +387,7 @@ namespace Audio
             var clipName = clip.name.Replace(" ", "_");
             string path = $"{audioSettings.scriptablesPath}{clipName}.asset";
             
+            #if UNITY_EDITOR
             AudioScriptable mySo = AssetDatabase.LoadAssetAtPath<AudioScriptable>(path);
             if (!mySo) return;
 
@@ -385,10 +395,11 @@ namespace Audio
             mySo.Initialize(clip);
             EditorUtility.SetDirty(mySo);
             AssetDatabase.SaveAssets();
+            #endif
         }
         private void AssignMixerGroups()
         {
-            var allGroups = _mainMixer.FindMatchingGroups("");
+            var allGroups = mainMixer.FindMatchingGroups("");
 
             foreach (AudioMixerGroup group in allGroups)
             {

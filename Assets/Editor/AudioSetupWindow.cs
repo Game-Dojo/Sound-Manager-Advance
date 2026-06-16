@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.Audio;
 using AudioSettings = Audio.AudioSettings;
 
+#if UNITY_EDITOR
 namespace Editor
 {
     public class AudioSetupWindow : EditorWindow
@@ -292,3 +293,4 @@ namespace Editor
         #endregion
     }
 }
+#endif

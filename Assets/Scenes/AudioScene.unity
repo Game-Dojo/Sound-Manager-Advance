@@ -1345,30 +1345,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Audio.AudioManager
   audioSettings: {fileID: 11400000, guid: 2a951b5a8e054904a8e0cd158eed909a, type: 2}
   mainMixer: {fileID: 24100000, guid: 065677081748f7d44b30091a47944a0c, type: 2}
-  fadeCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 1
-      outSlope: 1
-      tangentMode: 34
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 1
-      value: 1
-      inSlope: 1
-      outSlope: 1
-      tangentMode: 34
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
   onMusicVolumeChanged:
     m_PersistentCalls:
       m_Calls: []
