@@ -180,14 +180,18 @@ namespace Editor
         private static string GetScriptPath()
         {
             AudioSettings mySo = GetAudioSetting();
-            if (mySo == null) return null;
+            if (!mySo)
+            {
+                Debug.LogWarning("Audio settings not found");
+                return null;
+            }
             return mySo.scriptsAudioPath;
         }
-        
-        public static string GetAudioResourcePath()
+
+        private static string GetAudioResourcePath()
         {
             AudioSettings mySo = GetAudioSetting();
-            if (mySo == null)
+            if (!mySo)
             {
                 Debug.LogWarning("Audio settings not found");
                 return null;
@@ -198,7 +202,11 @@ namespace Editor
         public static string GetScriptablePath()
         {
             AudioSettings mySo = GetAudioSetting();
-            if (mySo == null) return null;
+            if (!mySo)
+            {
+                Debug.LogWarning("Audio settings not found");
+                return null;
+            }
             return mySo.scriptablesPath;
         }
         #endregion
