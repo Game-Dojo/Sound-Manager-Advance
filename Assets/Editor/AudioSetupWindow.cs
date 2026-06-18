@@ -221,6 +221,7 @@ namespace Editor
             AudioSettings settingsSo = AssetDatabase.LoadAssetAtPath<AudioSettings>(path);
             _targetMixer = settingsSo.targetMixer;
         }
+        
         private void UpdateSettings()
         {
             AudioSettings mySo = AssetDatabase.LoadAssetAtPath<AudioSettings>(SettingsPath);

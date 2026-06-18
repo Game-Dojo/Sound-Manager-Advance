@@ -14,11 +14,9 @@ public class CubeController : MonoBehaviour
         _rb = GetComponent<Rigidbody>();
     }
 
-    private IEnumerator Start()
+    private void Start()
     {
         _audioManager = AudioManager.Instance;
-        yield return new WaitForEndOfFrame();
-        _audioManager.PlayMusic(AudioID.PuzzleMenu);
     }
 
     private void Update()

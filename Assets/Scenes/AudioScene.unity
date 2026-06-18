@@ -368,11 +368,11 @@ RectTransform:
   - {fileID: 1331705363}
   m_Father: {fileID: 730264823}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 104, y: 280}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 96, y: -32}
   m_SizeDelta: {x: 100, y: 100}
-  m_Pivot: {x: 0, y: 0}
+  m_Pivot: {x: 0, y: 1}
 --- !u!114 &238038687
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1344,7 +1344,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Audio.AudioManager
   audioSettings: {fileID: 11400000, guid: 2a951b5a8e054904a8e0cd158eed909a, type: 2}
-  mainMixer: {fileID: 24100000, guid: 065677081748f7d44b30091a47944a0c, type: 2}
+  mainMixer: {fileID: 0}
   onMusicVolumeChanged:
     m_PersistentCalls:
       m_Calls: []

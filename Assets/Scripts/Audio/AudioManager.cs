@@ -3,9 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.Audio;
 using UnityEngine.Events;
-using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
 namespace Audio
@@ -29,10 +29,10 @@ namespace Audio
         private Coroutine _disableSourceRoutine;
         private Coroutine _activeFadeRoutine;
         
-        
-
         private const string MusicExposed = "MusicVolume";
 
+        private int _assetsToLoad = 0;
+        private int _loadedAssets = 0;
         #endregion
         
         public enum AudioMode
@@ -47,6 +47,8 @@ namespace Audio
         }
         
         public static AudioManager Instance { get; private set; }
+        
+        public event Action OnLoadComplete;
         
         private void Awake()
         {
@@ -65,16 +67,10 @@ namespace Audio
         {
             SaveClips();
             
-            #if UNITY_EDITOR
-            if (!mainMixer)
-            {
-                AudioSettings mySo = AssetDatabase.LoadAssetAtPath<AudioSettings>("Assets/AudioSettings.asset");
-                if (!mySo) return;
-                mainMixer = mySo.targetMixer;
-            }
-            #endif
-            
-            AssignMixerGroups();
+            Addressables.LoadAssetAsync<AudioSettings>("AudioSettings").Completed += (handle) => {
+                mainMixer = (handle.Result).targetMixer;
+                AssignMixerGroups();
+            };
         }
 
         #region Play Methods
@@ -213,14 +209,14 @@ namespace Audio
             
             if (!_loadedScriptables.TryGetValue(id, out AudioScriptable scriptable))
             {
-                Debug.LogWarning("Scriptable not found");
+                Debug.LogError("Scriptable not found");
                 return;
             }
             
             AudioClip clip = scriptable.Get();
             if (clip == null)
             {
-                Debug.LogWarning($"AudioClip ({id}) not found");
+                Debug.LogError($"AudioClip ({id}) not found");
                 return;
             }
             
@@ -234,7 +230,9 @@ namespace Audio
             source.maxDistance = 50.0f;
             
             if (scriptable.groupID != AudioGroupID.None)
+            {
                 source.outputAudioMixerGroup = mainMixer.FindMatchingGroups(scriptable.groupID.ToString())[0];
+            }
             
             if (scriptable.use3DSound)
             {
@@ -248,7 +246,6 @@ namespace Audio
             
             source.gameObject.SetActive(true);
             source.transform.SetParent(objectToFollow.transform);
-            
             source.Play();
         }
         #endregion
@@ -324,7 +321,6 @@ namespace Audio
 
             return null;
         }
-
         private AudioSource GetFreeSource()
         {
             foreach (var source in _sourcesPool)
@@ -335,7 +331,7 @@ namespace Audio
 
             return null;
         }
-        private AudioSource CreatePoolAudioSource(string groupName, bool useGroup = true)
+        private AudioSource CreatePoolAudioSource(string groupName, AudioMixerGroup group)
         {
             GameObject go = new GameObject();
             go.transform.parent = transform;
@@ -343,8 +339,10 @@ namespace Audio
             go.transform.position = Vector3.zero;
 
             AudioSource source = go.AddComponent<AudioSource>();
-            if (useGroup)
-                source.outputAudioMixerGroup = mainMixer.FindMatchingGroups(groupName)[0];
+            if (group)
+            {
+                source.outputAudioMixerGroup = group; //mainMixer.FindMatchingGroups(groupName)[0];
+            }
             source.playOnAwake = false;
 
             go.SetActive(false);
@@ -362,19 +360,19 @@ namespace Audio
             }
             
             AudioClip[] allClips = Resources.LoadAll<AudioClip>(audioSettings.audioPath);
-
+            _assetsToLoad = allClips.Length;
+            
             foreach (var clip in allClips)
             {
                 var clipName = clip.name.Replace(" ", "_");
                 if (!Enum.TryParse(clipName, out AudioID id)) continue;
                 
                 _loadedClips.TryAdd(id, clip);
-                #if UNITY_EDITOR
                 EditScriptable(clip, id);
-                #else
-                _loadedScriptables.TryAdd(id, SCRITABLE_OBJECT);
-                #endif
             }
+#if UNITY_EDITOR
+            AssetDatabase.SaveAssets();
+#endif
         }
         private void EditScriptable( AudioClip clip, AudioID audioID )
         {
@@ -384,33 +382,42 @@ namespace Audio
                 return;
             }
             
-            var clipName = clip.name.Replace(" ", "_");
-            string path = $"{audioSettings.scriptablesPath}{clipName}.asset";
-            
-            #if UNITY_EDITOR
-            AudioScriptable mySo = AssetDatabase.LoadAssetAtPath<AudioScriptable>(path);
-            if (!mySo) return;
+            Addressables.LoadAssetAsync<AudioScriptable>(audioID.ToString()).Completed += (handle) => {
+                AudioScriptable mySo = handle.Result as AudioScriptable;
+                mySo.Initialize(clip);
+                
+                _loadedScriptables.TryAdd(audioID, mySo);
+                _loadedAssets += 1;
 
-            _loadedScriptables.TryAdd(audioID, mySo);
-            mySo.Initialize(clip);
-            EditorUtility.SetDirty(mySo);
-            AssetDatabase.SaveAssets();
-            #endif
+                if (_loadedAssets >= _assetsToLoad)
+                    StartCoroutine(DelayedInvoke());
+#if UNITY_EDITOR
+                EditorUtility.SetDirty(mySo);
+#endif
+            };
         }
+
+        private IEnumerator DelayedInvoke()
+        {
+            yield return null;
+            OnLoadComplete?.Invoke();
+        }
+
         private void AssignMixerGroups()
         {
             var allGroups = mainMixer.FindMatchingGroups("");
-
+            
             foreach (AudioMixerGroup group in allGroups)
             {
                 var groupName = group.ToString();
-                if (groupName != "Master")
-                    _sourcesPool.Add(CreatePoolAudioSource(groupName));
+
+                if (groupName == "Master") continue;
+                _sourcesPool.Add(CreatePoolAudioSource(groupName, group));
             }
 
             for (var i = 0; i < 10; i++)
             {
-                _sourcesPool.Add(CreatePoolAudioSource($"Audio_{i+1}", false));
+                _sourcesPool.Add(CreatePoolAudioSource($"Audio_{i+1}", null));
             }
         }
         #endregion

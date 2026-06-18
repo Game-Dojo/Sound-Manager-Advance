@@ -2,6 +2,8 @@ using Audio;
 using System.IO;
 using System.Text;
 using UnityEditor;
+using UnityEditor.AddressableAssets;
+using UnityEditor.AddressableAssets.Settings;
 using UnityEngine;
 using UnityEngine.Audio;
 using AudioSettings = Audio.AudioSettings;
@@ -14,7 +16,7 @@ namespace Editor
         private const string GroupEnumFileName = "AudioGroupID.cs";
         private const string AudioEnumFileName = "AudioID.cs";
 
-        #region Generation
+        #region Enums Generation
         public static void GenerateEnum()
         {
             var audioPath = GetAudioResourcePath();
@@ -50,11 +52,18 @@ namespace Editor
                 sb.AppendLine($"        {name},");
 
                 var scrPath = $"{scriptablePath}{name}.asset";
-                if (File.Exists(scrPath)) continue;
-                
-                AudioScriptable newAsset = ScriptableObject.CreateInstance<AudioScriptable>();
-                UnityEditor.AssetDatabase.CreateAsset(newAsset, scrPath);
-                UnityEditor.AssetDatabase.SaveAssets();
+                if (!File.Exists(scrPath)) 
+                {
+                    AudioScriptable newAsset = ScriptableObject.CreateInstance<AudioScriptable>();
+                    AssetDatabase.CreateAsset(newAsset, scrPath);
+                    AssetDatabase.SaveAssets();
+                    
+                    RegisterAddressable(scrPath, name);
+                }
+                else
+                {
+                    RegisterAddressable(scrPath, name);
+                }
             }
 
             sb.AppendLine("    }");
@@ -162,7 +171,7 @@ namespace Editor
             AssetDatabase.Refresh();
         }
         #endregion
-        
+   
         #region Clean up
         public static void CleanAll()
         {
@@ -172,6 +181,27 @@ namespace Editor
         #endregion
         
         #region Settings
+        private static void RegisterAddressable(string assetPath, string addressName)
+        {
+            AddressableAssetSettings settings = AddressableAssetSettingsDefaultObject.Settings;
+
+            if (!settings)
+            {
+                Debug.LogError("Addressable Asset Settings not found. Please create them via Window > Asset Management > Addressables > Groups.");
+                return;
+            }
+
+            string guid = AssetDatabase.AssetPathToGUID(assetPath);
+            AddressableAssetGroup group = settings.FindGroup("AudioAssets");
+
+            if (!group) return;
+            AddressableAssetEntry entry = settings.CreateOrMoveEntry(guid, group);
+            if (entry != null)
+            {
+                entry.address = addressName;
+            }
+        }
+        
         private static AudioSettings GetAudioSetting()
         {
             AudioSettings mySo = AssetDatabase.LoadAssetAtPath<AudioSettings>(AudioSetupWindow.SettingsPath);
