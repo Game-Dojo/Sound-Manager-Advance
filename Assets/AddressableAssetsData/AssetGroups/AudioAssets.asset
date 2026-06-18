@@ -15,6 +15,11 @@ MonoBehaviour:
   m_GroupName: AudioAssets
   m_GUID: 1cb69459a66bf2c43a461eba7ef21106
   m_SerializeEntries:
+  - m_GUID: 065677081748f7d44b30091a47944a0c
+    m_Address: MainMixer
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 0b94607c8aeba6c43938daaa7c280213
     m_Address: MouseClick
     m_ReadOnly: 0
@@ -35,15 +40,51 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6c5ae81f04a480d4c90bb38343df35da
+    m_Address: Assets/StaticAssets/Audio/Sounds/Switch.ogg
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Resources
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 7b17efaeb5846204882782743ef0665b
     m_Address: Click
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8d4ca0cb787e025478a8434c86c70982
+    m_Address: Assets/StaticAssets/Audio/Sounds/MouseRelease.ogg
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Resources
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8d68f8790cbecb44bb499cdbbd878789
+    m_Address: Assets/StaticAssets/Audio/Sounds/Click.ogg
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Resources
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8d794adc561c27a4e964923dc0989f0b
+    m_Address: PuzzleMenuFile
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Resources
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 8f3e2f843d7dd064f80f251bf43730ca
     m_Address: PuzzleMenu
     m_ReadOnly: 0
     m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 95d871a85fd920443bed2878bfe94690
+    m_Address: Assets/StaticAssets/Audio/Sounds/Switch CON ESPACIOS.ogg
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Resources
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ad8008ca21d04634483622d898feb077
+    m_Address: Assets/StaticAssets/Audio/Sounds/PRUEBA SONIDO.ogg
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Resources
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: b1cf43d02bae0914695f5275b79c426c
     m_Address: Rollover
@@ -55,10 +96,22 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c2a976e1a5a18cd49b6a153bf3b6894f
+    m_Address: Assets/StaticAssets/Audio/Sounds/Rollover.ogg
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Resources
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: cb444b18a14d65844bd88a5362c5b7f7
     m_Address: Switch_CON_ESPACIOS
     m_ReadOnly: 0
     m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d9ffa33e1ae124047896e638dd66e1b1
+    m_Address: Assets/StaticAssets/Audio/Sounds/MouseClick.ogg
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Resources
     FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: 3931810e9b45d1048826d858f4363b20, type: 2}

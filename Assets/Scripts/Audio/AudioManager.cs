@@ -3,9 +3,10 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.AddressableAssets;
 using UnityEngine.Audio;
 using UnityEngine.Events;
+using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
 using Random = UnityEngine.Random;
 
 namespace Audio
@@ -358,22 +359,30 @@ namespace Audio
                 Debug.LogWarning("Audio settings not set");
                 return;
             }
-            
-            AudioClip[] allClips = Resources.LoadAll<AudioClip>(audioSettings.audioPath);
-            _assetsToLoad = allClips.Length;
-            
-            foreach (var clip in allClips)
+
+            Addressables.LoadAssetsAsync<AudioClip>("Resources", null).Completed += (handle) =>
             {
-                var clipName = clip.name.Replace(" ", "_");
-                if (!Enum.TryParse(clipName, out AudioID id)) continue;
+                if (handle.Status == AsyncOperationStatus.Succeeded)
+                {
+                    var allClips = handle.Result;
+                    _assetsToLoad = allClips.Count;
+                    
+                    foreach (var clip in allClips)
+                    {
+                        var clipName = clip.name.Replace(" ", "_");
+                        if (!Enum.TryParse(clipName, out AudioID id)) continue;
+
+                        _loadedClips.TryAdd(id, clip);
+                        EditScriptable(clip, id);
+                    }
+
+                    return;
+                }
                 
-                _loadedClips.TryAdd(id, clip);
-                EditScriptable(clip, id);
-            }
-#if UNITY_EDITOR
-            AssetDatabase.SaveAssets();
-#endif
+                Debug.LogError("Failed to load audio folder resources.");
+            };
         }
+        
         private void EditScriptable( AudioClip clip, AudioID audioID )
         {
             if (!audioSettings)
