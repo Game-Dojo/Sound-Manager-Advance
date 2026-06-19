@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Audio.AudioSettings
   targetMixer: {fileID: 24100000, guid: 065677081748f7d44b30091a47944a0c, type: 2}
   scriptsAudioPath: Assets/Scripts/Audio/
-  audioResourcesPath: Assets/Resources/Audio/
+  audioResourcesPath: Assets/StaticAssets/Audio/
   scriptablesPath: Assets/Scriptables/
   audioPath: Audio
   fadeCurve:

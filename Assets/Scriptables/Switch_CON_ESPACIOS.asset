@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Switch_CON_ESPACIOS
   m_EditorClassIdentifier: Assembly-CSharp::Audio.AudioScriptable
   clip: {fileID: 8300000, guid: 95d871a85fd920443bed2878bfe94690, type: 3}
-  groupID: 2
+  groupID: 3
   volume: {x: 1, y: 1}
   pitch: {x: 1, y: 1}
   use3DSound: 0

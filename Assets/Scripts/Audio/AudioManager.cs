@@ -82,11 +82,17 @@ namespace Audio
             AudioClip clip = scriptable.Get();
             if (clip == null) return;
 
-            var source = GetFreeSource();
+            var source = GetAudioSource(scriptable.GetID());
+            
             if (!source)
             {
-                Debug.LogWarning("Audio Source is null");
-                return;
+                source = GetFreeSource();
+                
+                if (!source)
+                {
+                    Debug.LogWarning("Audio Source is null");
+                    return;
+                }
             }
             
             if (scriptable.groupID != AudioGroupID.None)
@@ -97,15 +103,17 @@ namespace Audio
             if (mode != AudioMode.Flat)
                 ChangePitchAndVolume(source, scriptable);
             
+            source.clip = clip;
+            
             if (loop)
             {
-                source.clip = clip;
                 source.loop = true;
                 source.Play();
                 return;
             }
             
             source.PlayOneShot(clip);
+            
             if (_disableSourceRoutine != null) StopCoroutine(_disableSourceRoutine);
             _disableSourceRoutine = StartCoroutine(nameof(SourceDisable), source);
         }
@@ -183,7 +191,7 @@ namespace Audio
             }
 
             AudioClip clip = scriptable.Get();
-            if (clip == null)
+            if (!clip)
             {
                 Debug.LogWarning($"AudioClip ({id}) not found");
                 return;
@@ -206,7 +214,7 @@ namespace Audio
         public void PlayFollow(AudioID id, GameObject objectToFollow, bool loopMode = true)
         {
             AudioSource source = GetFreeSource();
-            if (source == null) return;
+            if (!source) return;
             
             if (!_loadedScriptables.TryGetValue(id, out AudioScriptable scriptable))
             {
@@ -215,7 +223,7 @@ namespace Audio
             }
             
             AudioClip clip = scriptable.Get();
-            if (clip == null)
+            if (!clip)
             {
                 Debug.LogError($"AudioClip ({id}) not found");
                 return;
